@@ -1,0 +1,70 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+	<ItemGroup>
+		<None Include="..\..\Daemonium.uproject" />
+		<Filter Include="Source">
+			<UniqueIdentifier>{26E6A5E1-1E50-4D78-858E-7B1D24AE947C}</UniqueIdentifier>
+		</Filter>
+		<None Include="..\..\Source\Daemonium.Target.cs">
+			<Filter>Source</Filter>
+		</None >
+		<None Include="..\..\Source\DaemoniumEditor.Target.cs">
+			<Filter>Source</Filter>
+		</None >
+		<Filter Include="Config">
+			<UniqueIdentifier>{D73932C6-53F7-41F9-8EA8-DD8916F28F63}</UniqueIdentifier>
+		</Filter>
+		<None Include="..\..\Config\DefaultEditor.ini">
+			<Filter>Config</Filter>
+		</None >
+		<None Include="..\..\Config\DefaultEditorPerProjectUserSettings.ini">
+			<Filter>Config</Filter>
+		</None >
+		<None Include="..\..\Config\DefaultEngine.ini">
+			<Filter>Config</Filter>
+		</None >
+		<None Include="..\..\Config\DefaultGame.ini">
+			<Filter>Config</Filter>
+		</None >
+		<None Include="..\..\Config\DefaultInput.ini">
+			<Filter>Config</Filter>
+		</None >
+		<Filter Include="Source\Daemonium">
+			<UniqueIdentifier>{9829537C-6636-4297-AA48-EF8CF57E5C6E}</UniqueIdentifier>
+		</Filter>
+		<None Include="..\..\Source\Daemonium\Daemonium.Build.cs">
+			<Filter>Source\Daemonium</Filter>
+		</None >
+		<ClCompile Include="..\..\Source\Daemonium\Daemonium.cpp">
+			<Filter>Source\Daemonium</Filter>
+		</ClCompile >
+		<ClInclude Include="..\..\Source\Daemonium\Daemonium.h">
+			<Filter>Source\Daemonium</Filter>
+		</ClInclude >
+		<ClCompile Include="..\..\Source\Daemonium\DaemoniumCharacter.cpp">
+			<Filter>Source\Daemonium</Filter>
+		</ClCompile >
+		<ClInclude Include="..\..\Source\Daemonium\DaemoniumCharacter.h">
+			<Filter>Source\Daemonium</Filter>
+		</ClInclude >
+		<ClCompile Include="..\..\Source\Daemonium\DaemoniumGameMode.cpp">
+			<Filter>Source\Daemonium</Filter>
+		</ClCompile >
+		<ClInclude Include="..\..\Source\Daemonium\DaemoniumGameMode.h">
+			<Filter>Source\Daemonium</Filter>
+		</ClInclude >
+		<ClCompile Include="..\..\Source\Daemonium\DaemoniumHUD.cpp">
+			<Filter>Source\Daemonium</Filter>
+		</ClCompile >
+		<ClInclude Include="..\..\Source\Daemonium\DaemoniumHUD.h">
+			<Filter>Source\Daemonium</Filter>
+		</ClInclude >
+		<ClCompile Include="..\..\Source\Daemonium\DaemoniumProjectile.cpp">
+			<Filter>Source\Daemonium</Filter>
+		</ClCompile >
+		<ClInclude Include="..\..\Source\Daemonium\DaemoniumProjectile.h">
+			<Filter>Source\Daemonium</Filter>
+		</ClInclude >
+	</ItemGroup>
+</Project>
