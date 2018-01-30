@@ -19,7 +19,8 @@ class ADaemoniumCharacter : public ACharacter
 
 	/** Gun mesh: 1st person view (seen only by self) */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-	class USkeletalMeshComponent* FP_Gun;
+	class UStaticMeshComponent* FP_Weapon;
+	//class USkeletalMeshComponent* FP_Weapon;
 
 	/** Location on gun mesh where projectiles should spawn. */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)

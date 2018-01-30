@@ -10,6 +10,7 @@
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "MotionControllerComponent.h"
+#include "Components/StaticMeshComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
 
@@ -41,21 +42,22 @@ ADaemoniumCharacter::ADaemoniumCharacter()
 	Mesh1P->RelativeLocation = FVector(-0.5f, -4.4f, -155.7f);
 
 	// Create a gun mesh component
-	FP_Gun = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("FP_Gun"));
-	FP_Gun->SetOnlyOwnerSee(true);			// only the owning player will see this mesh
-	FP_Gun->bCastDynamicShadow = false;
-	FP_Gun->CastShadow = false;
-	// FP_Gun->SetupAttachment(Mesh1P, TEXT("GripPoint"));
-	FP_Gun->SetupAttachment(RootComponent);
+	FP_Weapon = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("narsil"));
+	FP_Weapon->SetOnlyOwnerSee(true);			// only the owning player will see this mesh
+	FP_Weapon->bCastDynamicShadow = false;
+	FP_Weapon->CastShadow = false;
+	FP_Weapon->RelativeRotation = FRotator(5.0f,4.3f,210.2f);
+	FP_Weapon->SetupAttachment(Mesh1P, TEXT("GripPoint"));
+	//FP_Weapon->SetupAttachment(RootComponent);
 
 	FP_MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzleLocation"));
-	FP_MuzzleLocation->SetupAttachment(FP_Gun);
+	//FP_MuzzleLocation->SetupAttachment(FP_Weapon);
 	FP_MuzzleLocation->SetRelativeLocation(FVector(0.2f, 48.4f, -10.6f));
 
 	// Default offset from the character location for projectiles to spawn
 	GunOffset = FVector(100.0f, 0.0f, 10.0f);
 
-	// Note: The ProjectileClass and the skeletal mesh/anim blueprints for Mesh1P, FP_Gun, and VR_Gun 
+	// Note: The ProjectileClass and the skeletal mesh/anim blueprints for Mesh1P, FP_Weapon, and VR_Gun 
 	// are set in the derived blueprint asset named MyCharacter to avoid direct content references in C++.
 
 	// Create VR Controllers.
@@ -89,7 +91,7 @@ void ADaemoniumCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	//Attach gun mesh component to Skeleton, doing it here because the skeleton is not yet created in the constructor
-	FP_Gun->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));
+	FP_Weapon->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));
 
 	// Show or hide the two versions of the gun based on whether or not we're using motion controllers.
 	if (bUsingMotionControllers)
