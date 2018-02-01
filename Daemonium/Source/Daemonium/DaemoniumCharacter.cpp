@@ -37,6 +37,7 @@ ADaemoniumCharacter::ADaemoniumCharacter()
 	// Create a mesh component that will be used when being viewed from a '1st person' view (when controlling this pawn)
 	Mesh1P = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("CharacterMesh1P"));
 	Mesh1P->SetOnlyOwnerSee(true);
+	Mesh1P->SetVisibility(false);
 	Mesh1P->SetupAttachment(FirstPersonCameraComponent);
 	Mesh1P->bCastDynamicShadow = false;
 	Mesh1P->CastShadow = false;
@@ -92,12 +93,15 @@ ADaemoniumCharacter::ADaemoniumCharacter()
 	VR_MuzzleLocation->SetRelativeRotation(FRotator(0.0f, 90.0f, 0.0f));		// Counteract the rotation of the VR gun model.
 
 	attackIndex = 0;
-	attackStartLocation = FP_WeaponRoot->RelativeLocation; //Start interpolation at player's location
+	weaponDefaultLocation = FP_WeaponRoot->RelativeLocation; //Start interpolation at player's location
 	attackEndLocation[0] = FP_WeaponRoot->RelativeLocation + FVector(0, 20, 50); //End interpolation at target's location
-	attackEndLocation[1] = FP_WeaponRoot->RelativeLocation + FVector(20, -20, -30);
+	attackEndLocation[1] = FP_WeaponRoot->RelativeLocation + FVector(40, -20, -50);
 	attackEndLocation[2] = FP_WeaponRoot->RelativeLocation;
+	blockLocation = FP_WeaponRoot->RelativeLocation + FVector(0, 20, 50);
 	// Uncomment the following line to turn motion controllers on by default:
 	//bUsingMotionControllers = true;
+
+	moveSpeedModifier = 1.0f;
 }
 
 void ADaemoniumCharacter::BeginPlay()
@@ -129,28 +133,38 @@ void ADaemoniumCharacter::Tick(float DeltaTime)
 
 	if (bIsAttacking)
 	{
-		float InterpSpeed = 12.0f;
+		float interpSpeed = 25.0f;
 		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, "attacking");
-		attackDestinationLocation = FMath::VInterpTo(FP_WeaponRoot->RelativeLocation, attackEndLocation[attackIndex], FApp::GetDeltaTime(), InterpSpeed); 
-		FP_WeaponRoot->SetRelativeLocation(attackDestinationLocation);    //Set the player's position to the calculated value
-		//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, (FP_WeaponRoot->RelativeLocation - attackEndLocation).ToString());
-		if (FP_WeaponRoot->RelativeLocation.Equals(attackEndLocation[attackIndex],5))
+		attackDestinationLocation = FMath::VInterpTo(FP_WeaponRoot->RelativeLocation, attackEndLocation[attackIndex], FApp::GetDeltaTime(), interpSpeed);
+		FP_WeaponRoot->SetRelativeLocation(attackDestinationLocation);
+		if (FP_WeaponRoot->RelativeLocation.Equals(attackEndLocation[attackIndex], 1))
 		{
-			if (attackIndex == sizeof(attackEndLocation)/sizeof(attackEndLocation[0]))
+			attackIndex++;
+			if (attackIndex == sizeof(attackEndLocation) / sizeof(attackEndLocation[0]))
 			{
 				bIsAttacking = false;
-				GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Blue, "stop attack");
 				attackIndex = 0;
-			}
-			else
-			{
-				attackIndex++;
 			}
 		}
 	}
-	else
-	{
 
+	if (bIsBlocking && !(FP_WeaponRoot->RelativeLocation.Equals(blockLocation, 1)))
+	{
+		float interpSpeed = 25.0f;
+		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, "blocking");
+		blockDestinationLocation = FMath::VInterpTo(FP_WeaponRoot->RelativeLocation, blockLocation, FApp::GetDeltaTime(), interpSpeed);
+		FP_WeaponRoot->SetRelativeLocation(blockDestinationLocation);
+	}
+	if (bIsStoppingBlock)
+	{
+		float interpSpeed = 25.0f;
+		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Blue, "stopping block");
+		blockDestinationLocation = FMath::VInterpTo(FP_WeaponRoot->RelativeLocation, weaponDefaultLocation, FApp::GetDeltaTime(), interpSpeed);
+		FP_WeaponRoot->SetRelativeLocation(blockDestinationLocation);
+		if (FP_WeaponRoot->RelativeLocation.Equals(weaponDefaultLocation, 1))
+		{
+			bIsStoppingBlock = false;
+		}
 	}
 }
 
@@ -168,6 +182,9 @@ void ADaemoniumCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 
 	// Bind fire event
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ADaemoniumCharacter::OnFire);
+
+	PlayerInputComponent->BindAction("Block", IE_Pressed, this, &ADaemoniumCharacter::OnStartBlock);
+	PlayerInputComponent->BindAction("Block", IE_Released, this, &ADaemoniumCharacter::OnStopBlock);
 
 	// Enable touchscreen input
 	EnableTouchscreenMovement(PlayerInputComponent);
@@ -197,11 +214,13 @@ void ADaemoniumCharacter::OnFire()
 		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Black, FString::SanitizeFloat(dt));
 		FMath::VInterpTo(FP_WeaponRoot->RelativeLocation, FVector(FP_WeaponRoot->RelativeLocation + FVector(10, 10, 10)), 1, 1);
 	}*/
-	if (bIsAttacking != true)
+	if (!bIsAttacking && !bIsBlocking)
+	{
+		bIsStoppingBlock = false;
 		bIsAttacking = true;
-	
-	
-	
+	}
+
+
 	//FVector destinationLocation;
 	//FVector FlowEndLocation;
 	//FVector FlowStartLocation;
@@ -270,6 +289,25 @@ if (FireAnimation != NULL)
 	}
 }
 /**/
+}
+
+void ADaemoniumCharacter::OnStartBlock()
+{
+	bIsBlocking = true;
+	bIsStoppingBlock = false;
+	moveSpeedModifier = .6;
+	if (bIsAttacking)
+	{
+		bIsAttacking = false;
+		attackIndex = 0;
+	}
+}
+
+void ADaemoniumCharacter::OnStopBlock()
+{
+	bIsBlocking = false;
+	bIsStoppingBlock = true;
+	moveSpeedModifier = 1;
 }
 
 void ADaemoniumCharacter::OnResetVR()
@@ -345,7 +383,7 @@ void ADaemoniumCharacter::MoveForward(float Value)
 	if (Value != 0.0f)
 	{
 		// add movement in that direction
-		AddMovementInput(GetActorForwardVector(), Value);
+		AddMovementInput(GetActorForwardVector(), Value * moveSpeedModifier);
 	}
 }
 
@@ -354,7 +392,7 @@ void ADaemoniumCharacter::MoveRight(float Value)
 	if (Value != 0.0f)
 	{
 		// add movement in that direction
-		AddMovementInput(GetActorRightVector(), Value);
+		AddMovementInput(GetActorRightVector(), Value * moveSpeedModifier);
 	}
 }
 

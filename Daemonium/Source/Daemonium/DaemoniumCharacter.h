@@ -91,6 +91,9 @@ protected:
 	/** Fires a projectile. */
 	void OnFire();
 
+	void OnStartBlock();
+	void OnStopBlock();
+
 	/** Resets HMD orientation and position in VR. */
 	void OnResetVR();
 
@@ -139,11 +142,23 @@ protected:
 	bool EnableTouchscreenMovement(UInputComponent* InputComponent);
 
 	bool bIsAttacking;
+	bool bIsBlocking;
+	bool bIsStoppingBlock;
 
 	FVector attackDestinationLocation;
+	FVector attackDestinationRotation;
 	FVector attackEndLocation [3];
+	FVector attackRotations[3];
+
+	FVector blockLocation;
+	FVector blockRotation;
+	FVector blockDestinationLocation;
+	FVector blockDestinationRotation;
+
 	int attackIndex;
-	FVector attackStartLocation;
+	FVector weaponDefaultLocation;
+
+	float moveSpeedModifier;
 
 public:
 	/** Returns Mesh1P subobject **/
