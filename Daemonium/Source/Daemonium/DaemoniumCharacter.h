@@ -17,6 +17,9 @@ class ADaemoniumCharacter : public ACharacter
 	UPROPERTY(VisibleDefaultsOnly, Category=Mesh)
 	class USkeletalMeshComponent* Mesh1P;
 
+	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+	class USceneComponent* FP_WeaponRoot;
+
 	/** Gun mesh: 1st person view (seen only by self) */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 	class UStaticMeshComponent* FP_Weapon;
@@ -51,6 +54,8 @@ public:
 
 protected:
 	virtual void BeginPlay();
+
+	virtual void Tick(float DeltaTime) override;
 
 public:
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
@@ -132,6 +137,13 @@ protected:
 	 * @returns true if touch controls were enabled.
 	 */
 	bool EnableTouchscreenMovement(UInputComponent* InputComponent);
+
+	bool bIsAttacking;
+
+	FVector attackDestinationLocation;
+	FVector attackEndLocation [3];
+	int attackIndex;
+	FVector attackStartLocation;
 
 public:
 	/** Returns Mesh1P subobject **/

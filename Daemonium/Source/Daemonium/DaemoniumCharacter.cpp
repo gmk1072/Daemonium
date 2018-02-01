@@ -11,6 +11,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "MotionControllerComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "Runtime/Engine/Classes/Engine/Engine.h"
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
 
@@ -41,13 +43,21 @@ ADaemoniumCharacter::ADaemoniumCharacter()
 	Mesh1P->RelativeRotation = FRotator(1.9f, -19.19f, 5.2f);
 	Mesh1P->RelativeLocation = FVector(-0.5f, -4.4f, -155.7f);
 
+	FP_WeaponRoot = CreateDefaultSubobject<USceneComponent>(TEXT("WeaponRoot"));
+	FP_WeaponRoot->SetupAttachment(FirstPersonCameraComponent);
+	FP_WeaponRoot->SetRelativeLocation(FVector(50.0f, 20.0f, -30.0f));
+	FP_WeaponRoot->SetMobility(EComponentMobility::Movable);
+
 	// Create a gun mesh component
 	FP_Weapon = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("narsil"));
+	FP_Weapon->SetMobility(EComponentMobility::Movable);
 	FP_Weapon->SetOnlyOwnerSee(true);			// only the owning player will see this mesh
 	FP_Weapon->bCastDynamicShadow = false;
 	FP_Weapon->CastShadow = false;
-	FP_Weapon->RelativeRotation = FRotator(5.0f,4.3f,210.2f);
-	FP_Weapon->SetupAttachment(Mesh1P, TEXT("GripPoint"));
+	FP_Weapon->AttachToComponent(FP_WeaponRoot, FAttachmentTransformRules::KeepRelativeTransform);//FP_WeaponRoot, FAttachmentTransformRules::KeepWorldTransform);
+	FP_Weapon->RelativeRotation = FRotator(-15.0f, 8.0f, 169.0f);
+	//FP_Weapon->SetRelativeLocation(FVector(0.0f, 100.0f, 0.0f));
+	//FP_Weapon->SetupAttachment(Mesh1P, TEXT("GripPoint"));
 	//FP_Weapon->SetupAttachment(RootComponent);
 
 	FP_MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzleLocation"));
@@ -81,6 +91,11 @@ ADaemoniumCharacter::ADaemoniumCharacter()
 	VR_MuzzleLocation->SetRelativeLocation(FVector(0.000004, 53.999992, 10.000000));
 	VR_MuzzleLocation->SetRelativeRotation(FRotator(0.0f, 90.0f, 0.0f));		// Counteract the rotation of the VR gun model.
 
+	attackIndex = 0;
+	attackStartLocation = FP_WeaponRoot->RelativeLocation; //Start interpolation at player's location
+	attackEndLocation[0] = FP_WeaponRoot->RelativeLocation + FVector(0, 20, 50); //End interpolation at target's location
+	attackEndLocation[1] = FP_WeaponRoot->RelativeLocation + FVector(20, -20, -30);
+	attackEndLocation[2] = FP_WeaponRoot->RelativeLocation;
 	// Uncomment the following line to turn motion controllers on by default:
 	//bUsingMotionControllers = true;
 }
@@ -90,8 +105,10 @@ void ADaemoniumCharacter::BeginPlay()
 	// Call the base class  
 	Super::BeginPlay();
 
+	PrimaryActorTick.bCanEverTick = true;
+
 	//Attach gun mesh component to Skeleton, doing it here because the skeleton is not yet created in the constructor
-	FP_Weapon->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));
+	//FP_Weapon->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));
 
 	// Show or hide the two versions of the gun based on whether or not we're using motion controllers.
 	if (bUsingMotionControllers)
@@ -103,6 +120,37 @@ void ADaemoniumCharacter::BeginPlay()
 	{
 		VR_Gun->SetHiddenInGame(true, true);
 		Mesh1P->SetHiddenInGame(false, true);
+	}
+}
+
+void ADaemoniumCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	if (bIsAttacking)
+	{
+		float InterpSpeed = 12.0f;
+		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, "attacking");
+		attackDestinationLocation = FMath::VInterpTo(FP_WeaponRoot->RelativeLocation, attackEndLocation[attackIndex], FApp::GetDeltaTime(), InterpSpeed); 
+		FP_WeaponRoot->SetRelativeLocation(attackDestinationLocation);    //Set the player's position to the calculated value
+		//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, (FP_WeaponRoot->RelativeLocation - attackEndLocation).ToString());
+		if (FP_WeaponRoot->RelativeLocation.Equals(attackEndLocation[attackIndex],5))
+		{
+			if (attackIndex == sizeof(attackEndLocation)/sizeof(attackEndLocation[0]))
+			{
+				bIsAttacking = false;
+				GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Blue, "stop attack");
+				attackIndex = 0;
+			}
+			else
+			{
+				attackIndex++;
+			}
+		}
+	}
+	else
+	{
+
 	}
 }
 
@@ -141,50 +189,87 @@ void ADaemoniumCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 
 void ADaemoniumCharacter::OnFire()
 {
-	// try and fire a projectile
-	if (ProjectileClass != NULL)
+	GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, "attack");
+	/*float dt = 0.0f;
+	int frames = 30;
+	for (int i = 0; i < frames; i++) {
+		dt += float(1 / frames);
+		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Black, FString::SanitizeFloat(dt));
+		FMath::VInterpTo(FP_WeaponRoot->RelativeLocation, FVector(FP_WeaponRoot->RelativeLocation + FVector(10, 10, 10)), 1, 1);
+	}*/
+	if (bIsAttacking != true)
+		bIsAttacking = true;
+	
+	
+	
+	//FVector destinationLocation;
+	//FVector FlowEndLocation;
+	//FVector FlowStartLocation;
+
+	//FlowStartLocation = FP_WeaponRoot->RelativeLocation; //Start interpolation at player's location
+	//FlowEndLocation = FP_WeaponRoot->RelativeLocation + FVector(10, 200, 500); //End interpolation at target's location
+	//float InterpSpeed = 0.1f;
+
+	//destinationLocation = FMath::VInterpTo(FlowStartLocation, FlowEndLocation, FApp::GetDeltaTime(), InterpSpeed); //Move from start-finish in 0.5 seconds
+	//FP_WeaponRoot->SetRelativeLocation(destinationLocation);    //Set the player's position to the calculated value
+
+
+
+
+/*
+GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, orig.ToString());
+FVector rot = orig.RotateVector(FVector(45.0f, 0.0f, 0.0f));
+GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Blue, rot.ToString());
+FP_WeaponRoot->SetWorldRotation(FRotator(rot.Y, rot.Z, rot.X));
+GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FP_WeaponRoot->RelativeRotation.ToString());
+/**/
+
+/*
+// try and fire a projectile
+if (ProjectileClass != NULL)
+{
+	UWorld* const World = GetWorld();
+	if (World != NULL)
 	{
-		UWorld* const World = GetWorld();
-		if (World != NULL)
+		if (bUsingMotionControllers)
 		{
-			if (bUsingMotionControllers)
-			{
-				const FRotator SpawnRotation = VR_MuzzleLocation->GetComponentRotation();
-				const FVector SpawnLocation = VR_MuzzleLocation->GetComponentLocation();
-				World->SpawnActor<ADaemoniumProjectile>(ProjectileClass, SpawnLocation, SpawnRotation);
-			}
-			else
-			{
-				const FRotator SpawnRotation = GetControlRotation();
-				// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
-				const FVector SpawnLocation = ((FP_MuzzleLocation != nullptr) ? FP_MuzzleLocation->GetComponentLocation() : GetActorLocation()) + SpawnRotation.RotateVector(GunOffset);
+			const FRotator SpawnRotation = VR_MuzzleLocation->GetComponentRotation();
+			const FVector SpawnLocation = VR_MuzzleLocation->GetComponentLocation();
+			World->SpawnActor<ADaemoniumProjectile>(ProjectileClass, SpawnLocation, SpawnRotation);
+		}
+		else
+		{
+			const FRotator SpawnRotation = GetControlRotation();
+			// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
+			const FVector SpawnLocation = ((FP_MuzzleLocation != nullptr) ? FP_MuzzleLocation->GetComponentLocation() : GetActorLocation()) + SpawnRotation.RotateVector(GunOffset);
 
-				//Set Spawn Collision Handling Override
-				FActorSpawnParameters ActorSpawnParams;
-				ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+			//Set Spawn Collision Handling Override
+			FActorSpawnParameters ActorSpawnParams;
+			ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 
-				// spawn the projectile at the muzzle
-				World->SpawnActor<ADaemoniumProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
-			}
+			// spawn the projectile at the muzzle
+			World->SpawnActor<ADaemoniumProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
 		}
 	}
+}
 
-	// try and play the sound if specified
-	if (FireSound != NULL)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
-	}
+// try and play the sound if specified
+if (FireSound != NULL)
+{
+	UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
+}
 
-	// try and play a firing animation if specified
-	if (FireAnimation != NULL)
+// try and play a firing animation if specified
+if (FireAnimation != NULL)
+{
+	// Get the animation object for the arms mesh
+	UAnimInstance* AnimInstance = Mesh1P->GetAnimInstance();
+	if (AnimInstance != NULL)
 	{
-		// Get the animation object for the arms mesh
-		UAnimInstance* AnimInstance = Mesh1P->GetAnimInstance();
-		if (AnimInstance != NULL)
-		{
-			AnimInstance->Montage_Play(FireAnimation, 1.f);
-		}
+		AnimInstance->Montage_Play(FireAnimation, 1.f);
 	}
+}
+/**/
 }
 
 void ADaemoniumCharacter::OnResetVR()
@@ -296,6 +381,6 @@ bool ADaemoniumCharacter::EnableTouchscreenMovement(class UInputComponent* Playe
 		//PlayerInputComponent->BindTouch(EInputEvent::IE_Repeat, this, &ADaemoniumCharacter::TouchUpdate);
 		return true;
 	}
-	
+
 	return false;
 }
