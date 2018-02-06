@@ -7,6 +7,8 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
 #include "GameFramework/InputSettings.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "GameFramework/Controller.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "MotionControllerComponent.h"
@@ -57,6 +59,8 @@ ADaemoniumCharacter::ADaemoniumCharacter()
 	FP_Weapon->CastShadow = false;
 	FP_Weapon->AttachToComponent(FP_WeaponRoot, FAttachmentTransformRules::KeepRelativeTransform);//FP_WeaponRoot, FAttachmentTransformRules::KeepWorldTransform);
 	FP_Weapon->RelativeRotation = FRotator(-15.0f, 8.0f, 169.0f);
+	FP_Weapon->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
+	FP_Weapon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	//FP_Weapon->SetRelativeLocation(FVector(0.0f, 100.0f, 0.0f));
 	//FP_Weapon->SetupAttachment(Mesh1P, TEXT("GripPoint"));
 	//FP_Weapon->SetupAttachment(RootComponent);
@@ -94,10 +98,49 @@ ADaemoniumCharacter::ADaemoniumCharacter()
 
 	attackIndex = 0;
 	weaponDefaultLocation = FP_WeaponRoot->RelativeLocation; //Start interpolation at player's location
-	attackEndLocation[0] = FP_WeaponRoot->RelativeLocation + FVector(0, 20, 50); //End interpolation at target's location
-	attackEndLocation[1] = FP_WeaponRoot->RelativeLocation + FVector(40, -20, -50);
-	attackEndLocation[2] = FP_WeaponRoot->RelativeLocation;
-	blockLocation = FP_WeaponRoot->RelativeLocation + FVector(0, 20, 50);
+	attackEndLocation[0][0] = FP_WeaponRoot->RelativeLocation + FVector(0, 20, 50); //End interpolation at target's location
+	attackEndRotation[0][0] = FRotator(60, 20, 40);
+	attackEndLocation[0][1] = FP_WeaponRoot->RelativeLocation + FVector(40, -20, -50);
+	attackEndRotation[0][1] = FRotator(-60, -40, 40);
+	attackEndLocation[0][2] = FP_WeaponRoot->RelativeLocation;
+	attackEndRotation[0][2] = FP_WeaponRoot->RelativeRotation;
+
+	attackEndLocation[1][0] = FP_WeaponRoot->RelativeLocation + FVector(0, 20, -50); //End interpolation at target's location
+	//attackEndRotation[1][0] = FRotator(142, -33, 22);
+	FQuat quat = FQuat(FRotator(-140, 0, 89));
+	attackEndRotation[1][0] = FRotator(quat);
+	attackEndLocation[1][1] = FP_WeaponRoot->RelativeLocation + FVector(20, -50, 50);
+	//attackEndRotation[1][1] = FRotator(37, 33, -157);
+	quat = FQuat(FRotator(-160, -160, 180));
+	attackEndRotation[1][1] = FRotator(quat);
+	attackEndLocation[1][2] = FP_WeaponRoot->RelativeLocation;
+	attackEndRotation[1][2] = FP_WeaponRoot->RelativeRotation;
+
+	//stabby
+	//attackEndLocation[1][0] = FP_WeaponRoot->RelativeLocation + FVector(0, 20, -50); //End interpolation at target's location
+	//attackEndRotation[1][0] = FRotator(0, 20, 60);
+	//attackEndLocation[1][1] = FP_WeaponRoot->RelativeLocation + FVector(40, -20, 50);
+	//attackEndRotation[1][1] = FRotator(-60, -40, 40);
+	//attackEndLocation[1][2] = FP_WeaponRoot->RelativeLocation;
+	//attackEndRotation[1][2] = FP_WeaponRoot->RelativeRotation;
+
+
+	attackEndLocation[2][0] = FP_WeaponRoot->RelativeLocation + FVector(0, 20, 50); //End interpolation at target's location
+	attackEndRotation[2][0] = FRotator(60, 20, 40);
+	attackEndLocation[2][1] = FP_WeaponRoot->RelativeLocation + FVector(40, -20, -50);
+	attackEndRotation[2][1] = FRotator(-60, -40, 40);
+	attackEndLocation[2][2] = FP_WeaponRoot->RelativeLocation;
+	attackEndRotation[2][2] = FP_WeaponRoot->RelativeRotation;
+
+	attackEndLocation[3][0] = FP_WeaponRoot->RelativeLocation + FVector(0, 20, 50); //End interpolation at target's location
+	attackEndRotation[3][0] = FRotator(60, 20, 40);
+	attackEndLocation[3][1] = FP_WeaponRoot->RelativeLocation + FVector(40, -20, -50);
+	attackEndRotation[3][1] = FRotator(-60, -40, 40);
+	attackEndLocation[3][2] = FP_WeaponRoot->RelativeLocation;
+	attackEndRotation[3][2] = FP_WeaponRoot->RelativeRotation;
+
+	blockLocation = FP_WeaponRoot->RelativeLocation + FVector(0, 20, 35);
+	blockRotation = FRotator(89, 89, 0);
 	// Uncomment the following line to turn motion controllers on by default:
 	//bUsingMotionControllers = true;
 
@@ -134,36 +177,72 @@ void ADaemoniumCharacter::Tick(float DeltaTime)
 	if (bIsAttacking)
 	{
 		float interpSpeed = 25.0f;
-		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, "attacking");
-		attackDestinationLocation = FMath::VInterpTo(FP_WeaponRoot->RelativeLocation, attackEndLocation[attackIndex], FApp::GetDeltaTime(), interpSpeed);
-		FP_WeaponRoot->SetRelativeLocation(attackDestinationLocation);
-		if (FP_WeaponRoot->RelativeLocation.Equals(attackEndLocation[attackIndex], 1))
+		//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, "attacking");
+		attackDestinationLocation = FMath::VInterpTo(FP_WeaponRoot->RelativeLocation, attackEndLocation[attackRandomizer][attackIndex], FApp::GetDeltaTime(), interpSpeed);
+		attackDestinationRotation = FMath::RInterpTo(FP_WeaponRoot->RelativeRotation, attackEndRotation[attackRandomizer][attackIndex], FApp::GetDeltaTime(), interpSpeed);
+		//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, FString::SanitizeFloat(FP_WeaponRoot->RelativeRotation.Yaw) + "," + FString::SanitizeFloat(FP_WeaponRoot->RelativeRotation.Pitch) + ", " + FString::SanitizeFloat(FP_WeaponRoot->RelativeRotation.Roll));
+		//attackDestinationRotation = FMath::VInterpTo(FVector(FP_WeaponRoot->RelativeRotation.Yaw, FP_WeaponRoot->RelativeRotation.Pitch, FP_WeaponRoot->RelativeRotation.Roll), attackEndRotation[attackIndex], FApp::GetDeltaTime(), interpSpeed);
+		FP_WeaponRoot->SetRelativeLocation(attackDestinationLocation, true);
+		FP_WeaponRoot->SetRelativeRotation(attackDestinationRotation, true);// FRotator(attackDestinationRotation.X, attackDestinationRotation.Y, attackDestinationRotation.Z));
+		if (FP_WeaponRoot->RelativeLocation.Equals(attackEndLocation[attackRandomizer][attackIndex], 1))//&& FP_WeaponRoot->RelativeRotation.Equals(FRotator(attackEndRotation[attackIndex].X, attackEndRotation[attackIndex].Y, attackEndRotation[attackIndex].Z), 1)
 		{
 			attackIndex++;
-			if (attackIndex == sizeof(attackEndLocation) / sizeof(attackEndLocation[0]))
+			if (attackIndex == sizeof(attackEndLocation[0]) / sizeof(attackEndLocation[0][0]))
 			{
 				bIsAttacking = false;
+				FP_Weapon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 				attackIndex = 0;
 			}
 		}
 	}
 
-	if (bIsBlocking && !(FP_WeaponRoot->RelativeLocation.Equals(blockLocation, 1)))
+	if (bIsBlocking && !((FP_WeaponRoot->RelativeLocation.Equals(blockLocation, 1)) && (FP_WeaponRoot->RelativeRotation.Equals(blockRotation, 1))))
 	{
 		float interpSpeed = 25.0f;
 		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, "blocking");
 		blockDestinationLocation = FMath::VInterpTo(FP_WeaponRoot->RelativeLocation, blockLocation, FApp::GetDeltaTime(), interpSpeed);
+		blockDestinationRotation = FMath::RInterpTo(FP_WeaponRoot->RelativeRotation, blockRotation, FApp::GetDeltaTime(), interpSpeed);
 		FP_WeaponRoot->SetRelativeLocation(blockDestinationLocation);
+		FP_WeaponRoot->SetRelativeRotation(blockDestinationRotation);
 	}
 	if (bIsStoppingBlock)
 	{
 		float interpSpeed = 25.0f;
 		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Blue, "stopping block");
 		blockDestinationLocation = FMath::VInterpTo(FP_WeaponRoot->RelativeLocation, weaponDefaultLocation, FApp::GetDeltaTime(), interpSpeed);
+		blockDestinationRotation = FMath::RInterpTo(FP_WeaponRoot->RelativeRotation, FRotator(0, 0, 0), FApp::GetDeltaTime(), interpSpeed);
 		FP_WeaponRoot->SetRelativeLocation(blockDestinationLocation);
+		FP_WeaponRoot->SetRelativeRotation(blockDestinationRotation);
 		if (FP_WeaponRoot->RelativeLocation.Equals(weaponDefaultLocation, 1))
 		{
 			bIsStoppingBlock = false;
+		}
+	}
+	if (bIsSprinting)
+	{
+		float interpspeed = 3;
+		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, "sprinting ");
+		sprintingFOVDestination = FMath::FInterpTo(FirstPersonCameraComponent->FieldOfView, 110, FApp::GetDeltaTime(), interpspeed);
+		if (!FMath::IsNearlyEqual(FirstPersonCameraComponent->FieldOfView, sprintingFOVDestination, 0.1f))
+		{
+			FirstPersonCameraComponent->FieldOfView = sprintingFOVDestination;
+		}
+		if (GetCharacterMovement()->Velocity.Size() == 0) {
+			bIsSprinting = false;
+			bIsStoppingSprint = true;
+		}
+	}
+
+	if (bIsStoppingSprint && !bIsSprinting)
+	{
+		float interpspeed = 3;
+		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Emerald, FString::SanitizeFloat(FirstPersonCameraComponent->FieldOfView));
+		sprintingFOVDestination = FMath::FInterpTo(FirstPersonCameraComponent->FieldOfView, 90, FApp::GetDeltaTime(), interpspeed);
+		FirstPersonCameraComponent->FieldOfView = sprintingFOVDestination;
+		if (FMath::IsNearlyEqual(FirstPersonCameraComponent->FieldOfView, 90, 0.1f))
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, "stopped sprint");
+			bIsStoppingSprint = false;
 		}
 	}
 }
@@ -186,6 +265,9 @@ void ADaemoniumCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 	PlayerInputComponent->BindAction("Block", IE_Pressed, this, &ADaemoniumCharacter::OnStartBlock);
 	PlayerInputComponent->BindAction("Block", IE_Released, this, &ADaemoniumCharacter::OnStopBlock);
 
+	PlayerInputComponent->BindAction("Sprint", IE_Pressed, this, &ADaemoniumCharacter::OnStartSprint);
+	PlayerInputComponent->BindAction("Sprint", IE_Released, this, &ADaemoniumCharacter::OnStopSprint);
+
 	// Enable touchscreen input
 	EnableTouchscreenMovement(PlayerInputComponent);
 
@@ -206,7 +288,7 @@ void ADaemoniumCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 
 void ADaemoniumCharacter::OnFire()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, "attack");
+	//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, "attack");
 	/*float dt = 0.0f;
 	int frames = 30;
 	for (int i = 0; i < frames; i++) {
@@ -214,8 +296,22 @@ void ADaemoniumCharacter::OnFire()
 		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Black, FString::SanitizeFloat(dt));
 		FMath::VInterpTo(FP_WeaponRoot->RelativeLocation, FVector(FP_WeaponRoot->RelativeLocation + FVector(10, 10, 10)), 1, 1);
 	}*/
-	if (!bIsAttacking && !bIsBlocking)
+	if (!bIsAttacking && !bIsBlocking && !bIsSprinting)
 	{
+		FP_Weapon->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		attackRandomizer = FMath::FRandRange(0, ((sizeof(attackEndLocation) / sizeof(attackEndLocation[0]))) / 2);
+		if (attackEven) {
+			GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Cyan, "even");
+			attackRandomizer *= 2;
+		}
+		else {
+			GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Cyan, "odd");
+			attackRandomizer *= 2;
+			attackRandomizer += 1;
+		}
+		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Cyan, FString::SanitizeFloat(attackRandomizer));
+		//attackRandomizer += ((sizeof(attackEndLocation) / sizeof(attackEndLocation[0]) - 1) / 2 * attackEven);
+		attackEven = !attackEven;
 		bIsStoppingBlock = false;
 		bIsAttacking = true;
 	}
@@ -291,8 +387,26 @@ if (FireAnimation != NULL)
 /**/
 }
 
+void ADaemoniumCharacter::OnStartSprint()
+{
+	if (GetCharacterMovement()->Velocity.Size() != 0) {
+		GetCharacterMovement()->MaxWalkSpeed *= 2;
+		bIsSprinting = true;
+	}
+}
+
+void ADaemoniumCharacter::OnStopSprint()
+{
+	if (bIsSprinting) {
+		GetCharacterMovement()->MaxWalkSpeed *= .5;
+		bIsSprinting = false;
+		bIsStoppingSprint = true;
+	}
+}
+
 void ADaemoniumCharacter::OnStartBlock()
 {
+	FP_Weapon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	bIsBlocking = true;
 	bIsStoppingBlock = false;
 	moveSpeedModifier = .6;

@@ -91,6 +91,9 @@ protected:
 	/** Fires a projectile. */
 	void OnFire();
 
+	void OnStartSprint();
+	void OnStopSprint();
+
 	void OnStartBlock();
 	void OnStopBlock();
 
@@ -144,21 +147,26 @@ protected:
 	bool bIsAttacking;
 	bool bIsBlocking;
 	bool bIsStoppingBlock;
+	bool bIsSprinting;
+	bool bIsStoppingSprint;
 
 	FVector attackDestinationLocation;
-	FVector attackDestinationRotation;
-	FVector attackEndLocation [3];
-	FVector attackRotations[3];
+	FRotator attackDestinationRotation;
+	FVector attackEndLocation [4][3];
+	FRotator attackEndRotation[4][3];
+	int attackRandomizer;
+	bool attackEven;
 
 	FVector blockLocation;
-	FVector blockRotation;
+	FRotator blockRotation;
 	FVector blockDestinationLocation;
-	FVector blockDestinationRotation;
+	FRotator blockDestinationRotation;
 
 	int attackIndex;
 	FVector weaponDefaultLocation;
 
 	float moveSpeedModifier;
+	float sprintingFOVDestination;
 
 public:
 	/** Returns Mesh1P subobject **/
