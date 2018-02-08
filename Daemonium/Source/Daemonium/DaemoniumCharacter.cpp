@@ -59,8 +59,9 @@ ADaemoniumCharacter::ADaemoniumCharacter()
 	FP_Weapon->CastShadow = false;
 	FP_Weapon->AttachToComponent(FP_WeaponRoot, FAttachmentTransformRules::KeepRelativeTransform);//FP_WeaponRoot, FAttachmentTransformRules::KeepWorldTransform);
 	FP_Weapon->RelativeRotation = FRotator(-15.0f, 8.0f, 169.0f);
-	FP_Weapon->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
+	FP_Weapon->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
 	FP_Weapon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
 	//FP_Weapon->SetRelativeLocation(FVector(0.0f, 100.0f, 0.0f));
 	//FP_Weapon->SetupAttachment(Mesh1P, TEXT("GripPoint"));
 	//FP_Weapon->SetupAttachment(RootComponent);
@@ -168,6 +169,7 @@ void ADaemoniumCharacter::BeginPlay()
 		VR_Gun->SetHiddenInGame(true, true);
 		Mesh1P->SetHiddenInGame(false, true);
 	}
+	FP_Weapon->OnComponentBeginOverlap.AddDynamic(this, &ADaemoniumCharacter::OnSwordOverlap);
 }
 
 void ADaemoniumCharacter::Tick(float DeltaTime)
@@ -256,8 +258,8 @@ void ADaemoniumCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 	check(PlayerInputComponent);
 
 	// Bind jump events
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
-	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+	/*PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);*/
 
 	// Bind fire event
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ADaemoniumCharacter::OnFire);
@@ -424,6 +426,7 @@ void ADaemoniumCharacter::OnStopBlock()
 	moveSpeedModifier = 1;
 }
 
+
 void ADaemoniumCharacter::OnResetVR()
 {
 	UHeadMountedDisplayFunctionLibrary::ResetOrientationAndPosition();
@@ -452,6 +455,21 @@ void ADaemoniumCharacter::EndTouch(const ETouchIndex::Type FingerIndex, const FV
 		OnFire();
 	}
 	TouchItem.bIsPressed = false;
+}
+
+void ADaemoniumCharacter::OnSwordOverlap(class UPrimitiveComponent* OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
+{
+	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, "hit enemy ");
+
+	if ((OtherActor != nullptr) && (OtherActor != this) && (OtherComp != nullptr))
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, "hit enemy ");
+
+		ADaemoniumEnemyTest* DET = Cast<ADaemoniumEnemyTest>(OtherActor);
+		if (DET) {
+			GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, "hit enemy " + FString::SanitizeFloat(DET->health));
+		}
+	}
 }
 
 //Commenting this section out to be consistent with FPS BP template.

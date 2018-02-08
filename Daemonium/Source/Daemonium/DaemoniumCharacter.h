@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "DaemoniumEnemyTest.h"
 #include "GameFramework/Character.h"
 #include "DaemoniumCharacter.generated.h"
 
@@ -96,7 +97,7 @@ protected:
 
 	void OnStartBlock();
 	void OnStopBlock();
-
+	
 	/** Resets HMD orientation and position in VR. */
 	void OnResetVR();
 
@@ -129,6 +130,10 @@ protected:
 	void BeginTouch(const ETouchIndex::Type FingerIndex, const FVector Location);
 	void EndTouch(const ETouchIndex::Type FingerIndex, const FVector Location);
 	void TouchUpdate(const ETouchIndex::Type FingerIndex, const FVector Location);
+
+	UFUNCTION()
+		void OnSwordOverlap(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
+
 	TouchData	TouchItem;
 	
 protected:
