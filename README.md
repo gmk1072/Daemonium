@@ -1,3 +1,5 @@
 #### TODO  
-  - fix the spacing issues in the window_Blueprint between the pillars and the frame  
-  - create LODs, assign LOD groups, and set static for window_deco and window_frame, base_arch and base_arch_deco  
+	- fix uv issues with window detail  
+	- work on lighting setting so assets aren't black  
+	- should groups be converted to static meshes or left separately (does this mess up lighting and lod?)  
+	- create actual cube piece so materials will scale on it properly  
