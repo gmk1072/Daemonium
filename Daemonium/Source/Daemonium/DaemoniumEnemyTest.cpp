@@ -25,7 +25,13 @@ void ADaemoniumEnemyTest::BeginPlay()
 void ADaemoniumEnemyTest::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
+	if (takenDamage) {
+		invulnTime += DeltaTime;
+	}
+	if (invulnTime >= .2) {
+		takenDamage = false;
+		invulnTime = 0;
+	}
 }
 
 
@@ -36,8 +42,24 @@ void ADaemoniumEnemyTest::SetupPlayerInputComponent(UInputComponent* PlayerInput
 
 }
 
-void ADaemoniumEnemyTest::TakeDamage(float damage)
+float ADaemoniumEnemyTest::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser)
 {
-	health -= armor * damage;
+	if (takenDamage == false) {
+		// Call the base class - this will tell us how much damage to apply  
+		const float ActualDamage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+		if (ActualDamage > 0.f)
+		{
+			health -= ActualDamage;
+			takenDamage = true;
+			// If the damage depletes our health set our lifespan to zero - which will destroy the actor  
+			if (health <= 0.f)
+			{
+				SetLifeSpan(0.001f);
+			}
+		}
+
+		return ActualDamage;
+	}
+	return 0;
 }
 

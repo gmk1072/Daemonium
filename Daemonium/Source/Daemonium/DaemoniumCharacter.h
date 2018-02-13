@@ -155,6 +155,8 @@ protected:
 	bool bIsSprinting;
 	bool bIsStoppingSprint;
 
+	FColor debugAttackColor;
+
 	FVector attackDestinationLocation;
 	FRotator attackDestinationRotation;
 	FVector attackEndLocation [4][3];

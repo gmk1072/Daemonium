@@ -13,6 +13,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "MotionControllerComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "DrawDebugHelpers.h"
 #include "Runtime/Engine/Classes/Engine/Engine.h"
 
 
@@ -186,14 +187,56 @@ void ADaemoniumCharacter::Tick(float DeltaTime)
 		//attackDestinationRotation = FMath::VInterpTo(FVector(FP_WeaponRoot->RelativeRotation.Yaw, FP_WeaponRoot->RelativeRotation.Pitch, FP_WeaponRoot->RelativeRotation.Roll), attackEndRotation[attackIndex], FApp::GetDeltaTime(), interpSpeed);
 		FP_WeaponRoot->SetRelativeLocation(attackDestinationLocation, true);
 		FP_WeaponRoot->SetRelativeRotation(attackDestinationRotation, true);// FRotator(attackDestinationRotation.X, attackDestinationRotation.Y, attackDestinationRotation.Z));
+
+		DrawDebugPoint(
+			GetWorld(),
+			FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -80),
+			20,  					//size
+			debugAttackColor,
+			//FColor(255, 0, 255),  //pink
+			false,//persistent (never goes away)
+			5.0 					//point leaves a trail on moving object
+		);
+		DrawDebugPoint(
+			GetWorld(),
+			FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -60),
+			20,  					//size
+			debugAttackColor,
+			//FColor(255, 0, 255),  //pink
+			false,//persistent (never goes away)
+			5.0 					//point leaves a trail on moving object
+		);
+		DrawDebugPoint(
+			GetWorld(),
+			FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -40),
+			20,  					//size
+			debugAttackColor, 
+			//FColor(255, 0, 255),  //pink
+			false,//persistent (never goes away)
+			5.0 					//point leaves a trail on moving object
+		);
+		DrawDebugPoint(
+			GetWorld(),
+			FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -20),
+			20,  					//size
+			debugAttackColor, 
+			//FColor(255, 0, 255),  //pink
+			false,//persistent (never goes away)
+			5.0 					//point leaves a trail on moving object
+		);
+
 		if (FP_WeaponRoot->RelativeLocation.Equals(attackEndLocation[attackRandomizer][attackIndex], 1))//&& FP_WeaponRoot->RelativeRotation.Equals(FRotator(attackEndRotation[attackIndex].X, attackEndRotation[attackIndex].Y, attackEndRotation[attackIndex].Z), 1)
 		{
 			attackIndex++;
 			if (attackIndex == sizeof(attackEndLocation[0]) / sizeof(attackEndLocation[0][0]))
 			{
 				bIsAttacking = false;
-				FP_Weapon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
 				attackIndex = 0;
+			}
+			else if (attackIndex == (sizeof(attackEndLocation[0]) / sizeof(attackEndLocation[0][0])) - 1)
+			{
+				FP_Weapon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 			}
 		}
 	}
@@ -237,7 +280,7 @@ void ADaemoniumCharacter::Tick(float DeltaTime)
 
 	if (bIsStoppingSprint && !bIsSprinting)
 	{
-		float interpspeed = 3;
+		float interpspeed = 10;
 		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Emerald, FString::SanitizeFloat(FirstPersonCameraComponent->FieldOfView));
 		sprintingFOVDestination = FMath::FInterpTo(FirstPersonCameraComponent->FieldOfView, 90, FApp::GetDeltaTime(), interpspeed);
 		FirstPersonCameraComponent->FieldOfView = sprintingFOVDestination;
@@ -311,6 +354,7 @@ void ADaemoniumCharacter::OnFire()
 			attackRandomizer *= 2;
 			attackRandomizer += 1;
 		}
+		debugAttackColor = FColor(FMath::FRandRange(0, 255), FMath::FRandRange(0, 255), FMath::FRandRange(0, 255));
 		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Cyan, FString::SanitizeFloat(attackRandomizer));
 		//attackRandomizer += ((sizeof(attackEndLocation) / sizeof(attackEndLocation[0]) - 1) / 2 * attackEven);
 		attackEven = !attackEven;
@@ -459,7 +503,19 @@ void ADaemoniumCharacter::EndTouch(const ETouchIndex::Type FingerIndex, const FV
 
 void ADaemoniumCharacter::OnSwordOverlap(class UPrimitiveComponent* OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, "hit enemy ");
+
+	TSubclassOf<UDamageType> const ValidDamageTypeClass = TSubclassOf<UDamageType>(UDamageType::StaticClass());
+	FDamageEvent DamageEvent(ValidDamageTypeClass);
+
+	const float DamageAmount = 15;
+	//OtherActor->TakeDamage(DamageAmount, DamageEvent, GetController(), this);
+
+
+
+	UGameplayStatics::ApplyRadialDamage(GetWorld(), DamageAmount, FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -80), 20, ValidDamageTypeClass, TArray<AActor*>(), this, GetController(), true, ECC_Destructible);
+	UGameplayStatics::ApplyRadialDamage(GetWorld(), DamageAmount, FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -60), 20, ValidDamageTypeClass, TArray<AActor*>(), this, GetController(), true, ECC_Destructible);
+	UGameplayStatics::ApplyRadialDamage(GetWorld(), DamageAmount, FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -40), 20, ValidDamageTypeClass, TArray<AActor*>(), this, GetController(), true, ECC_Destructible);
+	UGameplayStatics::ApplyRadialDamage(GetWorld(), DamageAmount, FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -20), 20, ValidDamageTypeClass, TArray<AActor*>(), this, GetController(), true, ECC_Destructible);
 
 	if ((OtherActor != nullptr) && (OtherActor != this) && (OtherComp != nullptr))
 	{
