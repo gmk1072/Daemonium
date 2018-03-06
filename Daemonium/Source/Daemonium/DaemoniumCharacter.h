@@ -91,13 +91,18 @@ protected:
 	
 	/** Fires a projectile. */
 	void OnFire();
-
+	void UpdateHealthScreenEffect();
 	void OnStartSprint();
 	void OnStopSprint();
 
 	void OnStartBlock();
 	void OnStopBlock();
-	
+
+	void Dodge();	
+
+	void becomeInvincible(float time);
+
+	bool drainStamina(float staminaCost, bool drainAnyway);
 	/** Resets HMD orientation and position in VR. */
 	void OnResetVR();
 
@@ -154,6 +159,16 @@ protected:
 	bool bIsStoppingBlock;
 	bool bIsSprinting;
 	bool bIsStoppingSprint;
+	bool bDodged;
+	float dodgeCooldown;
+	float stamina;
+	float staminaRegen;
+	float staminaRegenCooldown;
+	bool bStaminaCooldown;
+	bool binvincible;
+	float invincibillityTimer;
+	float health;
+	bool bIsDead;
 
 	FColor debugAttackColor;
 
@@ -174,6 +189,8 @@ protected:
 
 	float moveSpeedModifier;
 	float sprintingFOVDestination;
+
+	float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser);
 
 public:
 	/** Returns Mesh1P subobject **/
