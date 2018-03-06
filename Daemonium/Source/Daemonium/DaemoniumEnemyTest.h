@@ -32,5 +32,7 @@ public:
 	float armor;
 	bool takenDamage;
 	float invulnTime;
+
+	float damageRad;
 	
 };

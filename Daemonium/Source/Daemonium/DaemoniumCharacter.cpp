@@ -107,16 +107,6 @@ ADaemoniumCharacter::ADaemoniumCharacter()
 	attackEndLocation[0][2] = FP_WeaponRoot->RelativeLocation;
 	attackEndRotation[0][2] = FP_WeaponRoot->RelativeRotation;
 
-	attackEndLocation[1][0] = FP_WeaponRoot->RelativeLocation + FVector(0, 20, -50); //End interpolation at target's location
-	//attackEndRotation[1][0] = FRotator(142, -33, 22);
-	FQuat quat = FQuat(FRotator(-140, 0, 89));
-	attackEndRotation[1][0] = FRotator(quat);
-	attackEndLocation[1][1] = FP_WeaponRoot->RelativeLocation + FVector(20, -50, 50);
-	//attackEndRotation[1][1] = FRotator(37, 33, -157);
-	quat = FQuat(FRotator(-160, -160, 180));
-	attackEndRotation[1][1] = FRotator(quat);
-	attackEndLocation[1][2] = FP_WeaponRoot->RelativeLocation;
-	attackEndRotation[1][2] = FP_WeaponRoot->RelativeRotation;
 
 	//stabby
 	//attackEndLocation[1][0] = FP_WeaponRoot->RelativeLocation + FVector(0, 20, -50); //End interpolation at target's location
@@ -127,17 +117,26 @@ ADaemoniumCharacter::ADaemoniumCharacter()
 	//attackEndRotation[1][2] = FP_WeaponRoot->RelativeRotation;
 
 
-	attackEndLocation[2][0] = FP_WeaponRoot->RelativeLocation + FVector(0, 20, 50); //End interpolation at target's location
-	attackEndRotation[2][0] = FRotator(60, 20, 40);
-	attackEndLocation[2][1] = FP_WeaponRoot->RelativeLocation + FVector(40, -20, -50);
-	attackEndRotation[2][1] = FRotator(-60, -40, 40);
+	attackEndLocation[1][0] = FP_WeaponRoot->RelativeLocation + FVector(0, -60, 50); //End interpolation at target's location
+	attackEndRotation[1][0] = FRotator(0, 0, -30);
+	attackEndLocation[1][1] = FP_WeaponRoot->RelativeLocation + FVector(40, 40, -50);
+	attackEndRotation[1][1] = FRotator(-40, 60, -30);
+	attackEndLocation[1][2] = FP_WeaponRoot->RelativeLocation;
+	attackEndRotation[1][2] = FP_WeaponRoot->RelativeRotation;
+
+	attackEndLocation[2][0] = FP_WeaponRoot->RelativeLocation + FVector(0, 30, -60); //End interpolation at target's location
+	FQuat quat = FQuat(FRotator(-120, 0, 70));
+	attackEndRotation[2][0] = FRotator(quat);
+	attackEndLocation[2][1] = FP_WeaponRoot->RelativeLocation + FVector(20, -60, 60);
+	quat = FQuat(FRotator(-160, -160, 150));
+	attackEndRotation[2][1] = FRotator(quat);
 	attackEndLocation[2][2] = FP_WeaponRoot->RelativeLocation;
 	attackEndRotation[2][2] = FP_WeaponRoot->RelativeRotation;
 
-	attackEndLocation[3][0] = FP_WeaponRoot->RelativeLocation + FVector(0, 20, 50); //End interpolation at target's location
-	attackEndRotation[3][0] = FRotator(60, 20, 40);
-	attackEndLocation[3][1] = FP_WeaponRoot->RelativeLocation + FVector(40, -20, -50);
-	attackEndRotation[3][1] = FRotator(-60, -40, 40);
+	attackEndLocation[3][0] = FP_WeaponRoot->RelativeLocation + FVector(0, -60, -20); //End interpolation at target's location
+	attackEndRotation[3][0] = FRotator(0, 0, -110);
+	attackEndLocation[3][1] = FP_WeaponRoot->RelativeLocation + FVector(0, 20, 50);
+	attackEndRotation[3][1] = FRotator(40, 60, -110);
 	attackEndLocation[3][2] = FP_WeaponRoot->RelativeLocation;
 	attackEndRotation[3][2] = FP_WeaponRoot->RelativeRotation;
 
@@ -147,6 +146,12 @@ ADaemoniumCharacter::ADaemoniumCharacter()
 	//bUsingMotionControllers = true;
 
 	moveSpeedModifier = 1.0f;
+
+	stamina = 100.0f;
+	staminaRegen = stamina / 6.0f;
+
+	health = 100.0f;
+
 }
 
 void ADaemoniumCharacter::BeginPlay()
@@ -171,6 +176,9 @@ void ADaemoniumCharacter::BeginPlay()
 		Mesh1P->SetHiddenInGame(false, true);
 	}
 	FP_Weapon->OnComponentBeginOverlap.AddDynamic(this, &ADaemoniumCharacter::OnSwordOverlap);
+
+	FirstPersonCameraComponent->PostProcessSettings.bOverride_VignetteIntensity = true;
+	FirstPersonCameraComponent->PostProcessSettings.VignetteIntensity = 0.0f;
 }
 
 void ADaemoniumCharacter::Tick(float DeltaTime)
@@ -210,7 +218,7 @@ void ADaemoniumCharacter::Tick(float DeltaTime)
 			GetWorld(),
 			FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -40),
 			20,  					//size
-			debugAttackColor, 
+			debugAttackColor,
 			//FColor(255, 0, 255),  //pink
 			false,//persistent (never goes away)
 			5.0 					//point leaves a trail on moving object
@@ -219,7 +227,7 @@ void ADaemoniumCharacter::Tick(float DeltaTime)
 			GetWorld(),
 			FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -20),
 			20,  					//size
-			debugAttackColor, 
+			debugAttackColor,
 			//FColor(255, 0, 255),  //pink
 			false,//persistent (never goes away)
 			5.0 					//point leaves a trail on moving object
@@ -244,7 +252,7 @@ void ADaemoniumCharacter::Tick(float DeltaTime)
 	if (bIsBlocking && !((FP_WeaponRoot->RelativeLocation.Equals(blockLocation, 1)) && (FP_WeaponRoot->RelativeRotation.Equals(blockRotation, 1))))
 	{
 		float interpSpeed = 25.0f;
-		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, "blocking");
+		//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, "blocking");
 		blockDestinationLocation = FMath::VInterpTo(FP_WeaponRoot->RelativeLocation, blockLocation, FApp::GetDeltaTime(), interpSpeed);
 		blockDestinationRotation = FMath::RInterpTo(FP_WeaponRoot->RelativeRotation, blockRotation, FApp::GetDeltaTime(), interpSpeed);
 		FP_WeaponRoot->SetRelativeLocation(blockDestinationLocation);
@@ -253,7 +261,7 @@ void ADaemoniumCharacter::Tick(float DeltaTime)
 	if (bIsStoppingBlock)
 	{
 		float interpSpeed = 25.0f;
-		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Blue, "stopping block");
+		//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Blue, "stopping block");
 		blockDestinationLocation = FMath::VInterpTo(FP_WeaponRoot->RelativeLocation, weaponDefaultLocation, FApp::GetDeltaTime(), interpSpeed);
 		blockDestinationRotation = FMath::RInterpTo(FP_WeaponRoot->RelativeRotation, FRotator(0, 0, 0), FApp::GetDeltaTime(), interpSpeed);
 		FP_WeaponRoot->SetRelativeLocation(blockDestinationLocation);
@@ -265,31 +273,82 @@ void ADaemoniumCharacter::Tick(float DeltaTime)
 	}
 	if (bIsSprinting)
 	{
-		float interpspeed = 3;
-		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, "sprinting ");
-		sprintingFOVDestination = FMath::FInterpTo(FirstPersonCameraComponent->FieldOfView, 110, FApp::GetDeltaTime(), interpspeed);
-		if (!FMath::IsNearlyEqual(FirstPersonCameraComponent->FieldOfView, sprintingFOVDestination, 0.1f))
-		{
-			FirstPersonCameraComponent->FieldOfView = sprintingFOVDestination;
+		if (drainStamina(10 * FApp::GetDeltaTime(), false)) {
+			float interpspeed = 3;
+			//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, "sprinting ");
+			sprintingFOVDestination = FMath::FInterpTo(FirstPersonCameraComponent->FieldOfView, 100, FApp::GetDeltaTime(), interpspeed);
+			if (!FMath::IsNearlyEqual(FirstPersonCameraComponent->FieldOfView, 100, 0.1f))
+			{
+				FirstPersonCameraComponent->FieldOfView = sprintingFOVDestination;
+			}
+			if (GetCharacterMovement()->Velocity.Size() == 0) {
+				OnStopSprint();
+			}
 		}
-		if (GetCharacterMovement()->Velocity.Size() == 0) {
-			bIsSprinting = false;
-			bIsStoppingSprint = true;
+		else {
+			OnStopSprint();
 		}
 	}
 
 	if (bIsStoppingSprint && !bIsSprinting)
 	{
 		float interpspeed = 10;
-		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Emerald, FString::SanitizeFloat(FirstPersonCameraComponent->FieldOfView));
+		//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Emerald, FString::SanitizeFloat(FirstPersonCameraComponent->FieldOfView));
 		sprintingFOVDestination = FMath::FInterpTo(FirstPersonCameraComponent->FieldOfView, 90, FApp::GetDeltaTime(), interpspeed);
 		FirstPersonCameraComponent->FieldOfView = sprintingFOVDestination;
 		if (FMath::IsNearlyEqual(FirstPersonCameraComponent->FieldOfView, 90, 0.1f))
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, "stopped sprint");
+			//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, "stopped sprint");
 			bIsStoppingSprint = false;
 		}
 	}
+
+	if (bDodged) {
+		dodgeCooldown += FApp::GetDeltaTime();
+		if (dodgeCooldown >= 1.6) {
+			dodgeCooldown = 0;
+			bDodged = false;
+		}
+	}
+
+	if (binvincible) {
+		invincibillityTimer -= FApp::GetDeltaTime();
+		if (invincibillityTimer <= 0) {
+			invincibillityTimer = 0;
+			binvincible = false;
+		}
+		GEngine->AddOnScreenDebugMessage(-1, FApp::GetDeltaTime(), FColor::Red, "invincible");
+	}
+
+	if (bStaminaCooldown) {
+		staminaRegenCooldown += FApp::GetDeltaTime();
+		if (staminaRegenCooldown >= 1.0) {
+			staminaRegenCooldown = 0;
+			bStaminaCooldown = false;
+		}
+	}
+	else {
+		if (stamina < 100) {
+			if (bIsBlocking)
+				stamina += (staminaRegen / 2.0f) * FApp::GetDeltaTime();
+			else
+				stamina += staminaRegen * FApp::GetDeltaTime();
+			if (stamina > 100) {
+				stamina = 100;
+				if (UGameplayStatics::GetPlayerController(GetWorld(), 0)->IsInputKeyDown(EKeys::LeftShift)) {
+					OnStartSprint();
+				}
+			}
+		}
+	}
+	GEngine->AddOnScreenDebugMessage(-1, FApp::GetDeltaTime(), FColor::Emerald, FString::SanitizeFloat(stamina));
+	if (bIsDead) {
+		GEngine->AddOnScreenDebugMessage(-1, FApp::GetDeltaTime(), FColor::Red, "You're Dead");
+	}
+	else {
+		GEngine->AddOnScreenDebugMessage(-1, FApp::GetDeltaTime(), FColor::Red, FString::SanitizeFloat(health));
+	}
+
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -301,7 +360,8 @@ void ADaemoniumCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 	check(PlayerInputComponent);
 
 	// Bind jump events
-	/*PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ADaemoniumCharacter::Dodge);// &ACharacter::Jump);
+	/*
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);*/
 
 	// Bind fire event
@@ -346,16 +406,17 @@ void ADaemoniumCharacter::OnFire()
 		FP_Weapon->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		attackRandomizer = FMath::FRandRange(0, ((sizeof(attackEndLocation) / sizeof(attackEndLocation[0]))) / 2);
 		if (attackEven) {
-			GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Cyan, "even");
 			attackRandomizer *= 2;
+			GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Cyan, FString::SanitizeFloat(attackRandomizer));
 		}
 		else {
-			GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Cyan, "odd");
 			attackRandomizer *= 2;
 			attackRandomizer += 1;
+			GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Cyan, FString::SanitizeFloat(attackRandomizer));
 		}
+		//attackRandomizer = 1;
 		debugAttackColor = FColor(FMath::FRandRange(0, 255), FMath::FRandRange(0, 255), FMath::FRandRange(0, 255));
-		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Cyan, FString::SanitizeFloat(attackRandomizer));
+		//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Cyan, FString::SanitizeFloat(attackRandomizer));
 		//attackRandomizer += ((sizeof(attackEndLocation) / sizeof(attackEndLocation[0]) - 1) / 2 * attackEven);
 		attackEven = !attackEven;
 		bIsStoppingBlock = false;
@@ -433,10 +494,18 @@ if (FireAnimation != NULL)
 /**/
 }
 
+void ADaemoniumCharacter::UpdateHealthScreenEffect()
+{
+	float val = FMath::Pow(100 - health, 2);
+	FirstPersonCameraComponent->PostProcessSettings.VignetteIntensity = FMath::GetMappedRangeValueClamped(FVector2D(0, 10000), FVector2D(0, 3), val);  
+	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, FString::SanitizeFloat(val));
+	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, FString::SanitizeFloat(FirstPersonCameraComponent->PostProcessSettings.VignetteIntensity));
+}
+
 void ADaemoniumCharacter::OnStartSprint()
 {
 	if (GetCharacterMovement()->Velocity.Size() != 0) {
-		GetCharacterMovement()->MaxWalkSpeed *= 2;
+		GetCharacterMovement()->MaxWalkSpeed *= 1.6;
 		bIsSprinting = true;
 	}
 }
@@ -444,7 +513,7 @@ void ADaemoniumCharacter::OnStartSprint()
 void ADaemoniumCharacter::OnStopSprint()
 {
 	if (bIsSprinting) {
-		GetCharacterMovement()->MaxWalkSpeed *= .5;
+		GetCharacterMovement()->MaxWalkSpeed /= 1.6;
 		bIsSprinting = false;
 		bIsStoppingSprint = true;
 	}
@@ -469,6 +538,51 @@ void ADaemoniumCharacter::OnStopBlock()
 	bIsStoppingBlock = true;
 	moveSpeedModifier = 1;
 }
+
+
+
+void ADaemoniumCharacter::Dodge()
+{
+	if (!bDodged && !GetCharacterMovement()->IsFalling() && !(GetCharacterMovement()->Velocity.Size() == 0) && drainStamina(20, false)) {
+
+		becomeInvincible(.5);
+		bDodged = true;
+		//GetRootPrimitiveComponent()->AddForce(GetActorForwardVector() * 200.0f);
+		FVector direction = FVector(GetCharacterMovement()->Velocity.X, GetCharacterMovement()->Velocity.Y, 0);// .Normalize());// .X, GetCharacterMovement()->Velocity.Y, 0);
+		direction.Normalize();
+		direction.Z = 0;
+		//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, "dodge: " + direction.ToString());
+		direction = direction * 6000;
+		GetCharacterMovement()->AddImpulse(direction, true);
+	}
+}
+
+void ADaemoniumCharacter::becomeInvincible(float time)
+{
+	binvincible = true;
+	if (invincibillityTimer < time) {
+		invincibillityTimer = time;
+	}
+}
+
+bool ADaemoniumCharacter::drainStamina(float staminaCost, bool drainAnyway)
+{
+	if (stamina - staminaCost < 0) {
+		if (drainAnyway) {
+			staminaRegenCooldown = 0;
+			bStaminaCooldown = true;
+			stamina = 0;
+		}
+		return false;
+	}
+	else {
+		stamina -= staminaCost;
+		staminaRegenCooldown = 0;
+		bStaminaCooldown = true;
+		return true;
+	}
+}
+
 
 
 void ADaemoniumCharacter::OnResetVR()
@@ -512,14 +626,14 @@ void ADaemoniumCharacter::OnSwordOverlap(class UPrimitiveComponent* OverlappedCo
 
 
 
-	UGameplayStatics::ApplyRadialDamage(GetWorld(), DamageAmount, FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -80), 20, ValidDamageTypeClass, TArray<AActor*>(), this, GetController(), true, ECC_Destructible);
-	UGameplayStatics::ApplyRadialDamage(GetWorld(), DamageAmount, FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -60), 20, ValidDamageTypeClass, TArray<AActor*>(), this, GetController(), true, ECC_Destructible);
-	UGameplayStatics::ApplyRadialDamage(GetWorld(), DamageAmount, FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -40), 20, ValidDamageTypeClass, TArray<AActor*>(), this, GetController(), true, ECC_Destructible);
-	UGameplayStatics::ApplyRadialDamage(GetWorld(), DamageAmount, FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -20), 20, ValidDamageTypeClass, TArray<AActor*>(), this, GetController(), true, ECC_Destructible);
+	UGameplayStatics::ApplyRadialDamage(GetWorld(), DamageAmount, FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -120), 30, ValidDamageTypeClass, TArray<AActor*>(), this, GetController(), true, ECC_Destructible);
+	UGameplayStatics::ApplyRadialDamage(GetWorld(), DamageAmount, FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -90), 30, ValidDamageTypeClass, TArray<AActor*>(), this, GetController(), true, ECC_Destructible);
+	UGameplayStatics::ApplyRadialDamage(GetWorld(), DamageAmount, FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -60), 30, ValidDamageTypeClass, TArray<AActor*>(), this, GetController(), true, ECC_Destructible);
+	UGameplayStatics::ApplyRadialDamage(GetWorld(), DamageAmount, FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -30), 30, ValidDamageTypeClass, TArray<AActor*>(), this, GetController(), true, ECC_Destructible);
 
 	if ((OtherActor != nullptr) && (OtherActor != this) && (OtherComp != nullptr))
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, "hit enemy ");
+		//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, "hit enemy ");
 
 		ADaemoniumEnemyTest* DET = Cast<ADaemoniumEnemyTest>(OtherActor);
 		if (DET) {
@@ -609,4 +723,26 @@ bool ADaemoniumCharacter::EnableTouchscreenMovement(class UInputComponent* Playe
 	}
 
 	return false;
+}
+
+float ADaemoniumCharacter::TakeDamage(float Damage, FDamageEvent const & DamageEvent, AController * EventInstigator, AActor * DamageCauser)
+{
+	if (!binvincible) {
+		const float ActualDamage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+		if (ActualDamage > 0.f)
+		{
+			health -= (ActualDamage * ((bIsBlocking) ? .1 : 1));
+			// If the damage depletes our health set our lifespan to zero - which will destroy the actor  
+			if (health <= 0.f)
+			{
+				bIsDead = true;
+				health = 0;
+			}
+		}
+		UpdateHealthScreenEffect();
+		return ActualDamage;
+	}
+	else {
+		return 0;
+	}
 }
