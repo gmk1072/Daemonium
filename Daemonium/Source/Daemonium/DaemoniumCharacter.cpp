@@ -1,6 +1,7 @@
 // Copyright 1998-2017 Epic Games, Inc. All Rights Reserved.
 
 #include "DaemoniumCharacter.h"
+#include "Runtime/Engine/Classes/Engine/EngineTypes.h"
 #include "DaemoniumProjectile.h"
 #include "Animation/AnimInstance.h"
 #include "Camera/CameraComponent.h"
@@ -54,6 +55,7 @@ ADaemoniumCharacter::ADaemoniumCharacter()
 
 	// Create a gun mesh component
 	FP_Weapon = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("narsil"));
+	FP_Weapon->SetStaticMesh(nullptr);
 	FP_Weapon->SetMobility(EComponentMobility::Movable);
 	FP_Weapon->SetOnlyOwnerSee(true);			// only the owning player will see this mesh
 	FP_Weapon->bCastDynamicShadow = false;
@@ -68,7 +70,7 @@ ADaemoniumCharacter::ADaemoniumCharacter()
 	//FP_Weapon->SetupAttachment(RootComponent);
 
 	FP_MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzleLocation"));
-	//FP_MuzzleLocation->SetupAttachment(FP_Weapon);
+	FP_MuzzleLocation->SetupAttachment(FirstPersonCameraComponent);
 	FP_MuzzleLocation->SetRelativeLocation(FVector(0.2f, 48.4f, -10.6f));
 
 	// Default offset from the character location for projectiles to spawn
@@ -107,6 +109,13 @@ ADaemoniumCharacter::ADaemoniumCharacter()
 	attackEndLocation[0][2] = FP_WeaponRoot->RelativeLocation;
 	attackEndRotation[0][2] = FP_WeaponRoot->RelativeRotation;
 
+
+	chargeEndLocation[0] = FP_WeaponRoot->RelativeLocation + FVector(0, 20, 50); //End interpolation at target's location
+	chargeEndRotation[0] = FRotator(60, 20, 40);
+	chargeEndLocation[1] = FP_WeaponRoot->RelativeLocation + FVector(40, -20, -50);
+	chargeEndRotation[1] = FRotator(-60, -40, 40);
+	chargeEndLocation[2] = FP_WeaponRoot->RelativeLocation;
+	chargeEndRotation[2] = FP_WeaponRoot->RelativeRotation;
 
 	//stabby
 	//attackEndLocation[1][0] = FP_WeaponRoot->RelativeLocation + FVector(0, 20, -50); //End interpolation at target's location
@@ -187,64 +196,118 @@ void ADaemoniumCharacter::Tick(float DeltaTime)
 
 	if (bIsAttacking)
 	{
-		float interpSpeed = 25.0f;
-		//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, "attacking");
-		attackDestinationLocation = FMath::VInterpTo(FP_WeaponRoot->RelativeLocation, attackEndLocation[attackRandomizer][attackIndex], FApp::GetDeltaTime(), interpSpeed);
-		attackDestinationRotation = FMath::RInterpTo(FP_WeaponRoot->RelativeRotation, attackEndRotation[attackRandomizer][attackIndex], FApp::GetDeltaTime(), interpSpeed);
-		//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, FString::SanitizeFloat(FP_WeaponRoot->RelativeRotation.Yaw) + "," + FString::SanitizeFloat(FP_WeaponRoot->RelativeRotation.Pitch) + ", " + FString::SanitizeFloat(FP_WeaponRoot->RelativeRotation.Roll));
-		//attackDestinationRotation = FMath::VInterpTo(FVector(FP_WeaponRoot->RelativeRotation.Yaw, FP_WeaponRoot->RelativeRotation.Pitch, FP_WeaponRoot->RelativeRotation.Roll), attackEndRotation[attackIndex], FApp::GetDeltaTime(), interpSpeed);
-		FP_WeaponRoot->SetRelativeLocation(attackDestinationLocation, true);
-		FP_WeaponRoot->SetRelativeRotation(attackDestinationRotation, true);// FRotator(attackDestinationRotation.X, attackDestinationRotation.Y, attackDestinationRotation.Z));
-
-		DrawDebugPoint(
-			GetWorld(),
-			FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -80),
-			20,  					//size
-			debugAttackColor,
-			//FColor(255, 0, 255),  //pink
-			false,//persistent (never goes away)
-			5.0 					//point leaves a trail on moving object
-		);
-		DrawDebugPoint(
-			GetWorld(),
-			FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -60),
-			20,  					//size
-			debugAttackColor,
-			//FColor(255, 0, 255),  //pink
-			false,//persistent (never goes away)
-			5.0 					//point leaves a trail on moving object
-		);
-		DrawDebugPoint(
-			GetWorld(),
-			FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -40),
-			20,  					//size
-			debugAttackColor,
-			//FColor(255, 0, 255),  //pink
-			false,//persistent (never goes away)
-			5.0 					//point leaves a trail on moving object
-		);
-		DrawDebugPoint(
-			GetWorld(),
-			FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -20),
-			20,  					//size
-			debugAttackColor,
-			//FColor(255, 0, 255),  //pink
-			false,//persistent (never goes away)
-			5.0 					//point leaves a trail on moving object
-		);
-
-		if (FP_WeaponRoot->RelativeLocation.Equals(attackEndLocation[attackRandomizer][attackIndex], 1))//&& FP_WeaponRoot->RelativeRotation.Equals(FRotator(attackEndRotation[attackIndex].X, attackEndRotation[attackIndex].Y, attackEndRotation[attackIndex].Z), 1)
+		if (currentWeapon != nullptr)
 		{
-			attackIndex++;
-			if (attackIndex == sizeof(attackEndLocation[0]) / sizeof(attackEndLocation[0][0]))
-			{
-				bIsAttacking = false;
+			if (currentWeapon->IsA(AMeleeWeapon::StaticClass())) {
 
-				attackIndex = 0;
+				float interpSpeed = 25.0f;
+				//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, "attacking");
+				attackDestinationLocation = FMath::VInterpTo(FP_WeaponRoot->RelativeLocation, attackEndLocation[attackRandomizer][attackIndex], FApp::GetDeltaTime(), interpSpeed);
+				attackDestinationRotation = FMath::RInterpTo(FP_WeaponRoot->RelativeRotation, attackEndRotation[attackRandomizer][attackIndex], FApp::GetDeltaTime(), interpSpeed);
+				//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, FString::SanitizeFloat(FP_WeaponRoot->RelativeRotation.Yaw) + "," + FString::SanitizeFloat(FP_WeaponRoot->RelativeRotation.Pitch) + ", " + FString::SanitizeFloat(FP_WeaponRoot->RelativeRotation.Roll));
+				//attackDestinationRotation = FMath::VInterpTo(FVector(FP_WeaponRoot->RelativeRotation.Yaw, FP_WeaponRoot->RelativeRotation.Pitch, FP_WeaponRoot->RelativeRotation.Roll), attackEndRotation[attackIndex], FApp::GetDeltaTime(), interpSpeed);
+				FP_WeaponRoot->SetRelativeLocation(attackDestinationLocation, true);
+				FP_WeaponRoot->SetRelativeRotation(attackDestinationRotation, true);// FRotator(attackDestinationRotation.X, attackDestinationRotation.Y, attackDestinationRotation.Z));
+
+				DrawDebugPoint(
+					GetWorld(),
+					FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -80),
+					20,  					//size
+					debugAttackColor,
+					//FColor(255, 0, 255),  //pink
+					false,//persistent (never goes away)
+					5.0 					//point leaves a trail on moving object
+				);
+				DrawDebugPoint(
+					GetWorld(),
+					FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -60),
+					20,  					//size
+					debugAttackColor,
+					//FColor(255, 0, 255),  //pink
+					false,//persistent (never goes away)
+					5.0 					//point leaves a trail on moving object
+				);
+				DrawDebugPoint(
+					GetWorld(),
+					FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -40),
+					20,  					//size
+					debugAttackColor,
+					//FColor(255, 0, 255),  //pink
+					false,//persistent (never goes away)
+					5.0 					//point leaves a trail on moving object
+				);
+				DrawDebugPoint(
+					GetWorld(),
+					FP_WeaponRoot->GetComponentToWorld().GetLocation() + (FP_Weapon->GetUpVector() * -20),
+					20,  					//size
+					debugAttackColor,
+					//FColor(255, 0, 255),  //pink
+					false,//persistent (never goes away)
+					5.0 					//point leaves a trail on moving object
+				);
+
+				if (FP_WeaponRoot->RelativeLocation.Equals(attackEndLocation[attackRandomizer][attackIndex], 1))//&& FP_WeaponRoot->RelativeRotation.Equals(FRotator(attackEndRotation[attackIndex].X, attackEndRotation[attackIndex].Y, attackEndRotation[attackIndex].Z), 1)
+				{
+					attackIndex++;
+					if (attackIndex == sizeof(attackEndLocation[0]) / sizeof(attackEndLocation[0][0]))
+					{
+						bIsAttacking = false;
+
+						attackIndex = 0;
+					}
+					else if (attackIndex == (sizeof(attackEndLocation[0]) / sizeof(attackEndLocation[0][0])) - 1)
+					{
+						FP_Weapon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+					}
+				}
 			}
-			else if (attackIndex == (sizeof(attackEndLocation[0]) / sizeof(attackEndLocation[0][0])) - 1)
+			else if (currentWeapon->IsA(ARangedWeapon::StaticClass()))
 			{
 				FP_Weapon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+				if (bIsCharging)
+				{
+
+					float interpSpeed = 3.0f;
+					//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, "attacking");
+					attackDestinationLocation = FMath::VInterpTo(FP_WeaponRoot->RelativeLocation, chargeEndLocation[attackIndex], FApp::GetDeltaTime(), interpSpeed);
+					attackDestinationRotation = FMath::RInterpTo(FP_WeaponRoot->RelativeRotation, chargeEndRotation[attackIndex], FApp::GetDeltaTime(), interpSpeed);
+					//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, FString::SanitizeFloat(FP_WeaponRoot->RelativeRotation.Yaw) + "," + FString::SanitizeFloat(FP_WeaponRoot->RelativeRotation.Pitch) + ", " + FString::SanitizeFloat(FP_WeaponRoot->RelativeRotation.Roll));
+					//attackDestinationRotation = FMath::VInterpTo(FVector(FP_WeaponRoot->RelativeRotation.Yaw, FP_WeaponRoot->RelativeRotation.Pitch, FP_WeaponRoot->RelativeRotation.Roll), attackEndRotation[attackIndex], FApp::GetDeltaTime(), interpSpeed);
+					FP_WeaponRoot->SetRelativeLocation(attackDestinationLocation, true);
+					FP_WeaponRoot->SetRelativeRotation(attackDestinationRotation, true);// FRotator(attackDestinationRotation.X, attackDestinationRotation.Y, attackDestinationRotation.Z));
+
+					if (FP_WeaponRoot->RelativeLocation.Equals(chargeEndLocation[attackIndex], 3))//&& FP_WeaponRoot->RelativeRotation.Equals(FRotator(attackEndRotation[attackIndex].X, attackEndRotation[attackIndex].Y, attackEndRotation[attackIndex].Z), 1)
+					{
+
+					}
+					else
+					{
+						timeCharged += DeltaTime;
+					}
+
+				}
+				else
+				{
+					float interpSpeed = 25.0f;
+					//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, "attacking");
+					attackDestinationLocation = FMath::VInterpTo(FP_WeaponRoot->RelativeLocation, chargeEndLocation[attackIndex], FApp::GetDeltaTime(), interpSpeed);
+					attackDestinationRotation = FMath::RInterpTo(FP_WeaponRoot->RelativeRotation, chargeEndRotation[attackIndex], FApp::GetDeltaTime(), interpSpeed);
+					//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, FString::SanitizeFloat(FP_WeaponRoot->RelativeRotation.Yaw) + "," + FString::SanitizeFloat(FP_WeaponRoot->RelativeRotation.Pitch) + ", " + FString::SanitizeFloat(FP_WeaponRoot->RelativeRotation.Roll));
+					//attackDestinationRotation = FMath::VInterpTo(FVector(FP_WeaponRoot->RelativeRotation.Yaw, FP_WeaponRoot->RelativeRotation.Pitch, FP_WeaponRoot->RelativeRotation.Roll), attackEndRotation[attackIndex], FApp::GetDeltaTime(), interpSpeed);
+					FP_WeaponRoot->SetRelativeLocation(attackDestinationLocation, true);
+					FP_WeaponRoot->SetRelativeRotation(attackDestinationRotation, true);// FRotator(attackDestinationRotation.X, attackDestinationRotation.Y, attackDestinationRotation.Z));
+
+					if (FP_WeaponRoot->RelativeLocation.Equals(chargeEndLocation[attackIndex], 1))//&& FP_WeaponRoot->RelativeRotation.Equals(FRotator(attackEndRotation[attackIndex].X, attackEndRotation[attackIndex].Y, attackEndRotation[attackIndex].Z), 1)
+					{
+						attackIndex++;
+						if (attackIndex == sizeof(chargeEndLocation) / sizeof(chargeEndLocation[0]))
+						{
+							bIsAttacking = false;
+
+							attackIndex = 0;
+						}
+					}
+				}
 			}
 		}
 	}
@@ -366,6 +429,11 @@ void ADaemoniumCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 
 	// Bind fire event
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &ADaemoniumCharacter::OnFire);
+	PlayerInputComponent->BindAction("Fire", IE_Released, this, &ADaemoniumCharacter::OnFireRelease);
+
+	PlayerInputComponent->BindAction("Interact", IE_Pressed, this, &ADaemoniumCharacter::Interact);
+
+	PlayerInputComponent->BindAction("Holster", IE_Pressed, this, &ADaemoniumCharacter::Holster);
 
 	PlayerInputComponent->BindAction("Block", IE_Pressed, this, &ADaemoniumCharacter::OnStartBlock);
 	PlayerInputComponent->BindAction("Block", IE_Released, this, &ADaemoniumCharacter::OnStopBlock);
@@ -401,26 +469,37 @@ void ADaemoniumCharacter::OnFire()
 		GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Black, FString::SanitizeFloat(dt));
 		FMath::VInterpTo(FP_WeaponRoot->RelativeLocation, FVector(FP_WeaponRoot->RelativeLocation + FVector(10, 10, 10)), 1, 1);
 	}*/
-	if (!bIsAttacking && !bIsBlocking && !bIsSprinting)
+	if (!bIsAttacking && !bIsBlocking && !bIsSprinting && !bIsHolstered)
 	{
-		FP_Weapon->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-		attackRandomizer = FMath::FRandRange(0, ((sizeof(attackEndLocation) / sizeof(attackEndLocation[0]))) / 2);
-		if (attackEven) {
-			attackRandomizer *= 2;
-			GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Cyan, FString::SanitizeFloat(attackRandomizer));
+		if (currentWeapon != nullptr)
+		{
+			if (currentWeapon->IsA(AMeleeWeapon::StaticClass()))
+			{
+				FP_Weapon->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+				attackRandomizer = FMath::FRandRange(0, ((sizeof(attackEndLocation) / sizeof(attackEndLocation[0]))) / 2);
+				if (attackEven) {
+					attackRandomizer *= 2;
+					GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Cyan, FString::SanitizeFloat(attackRandomizer));
+				}
+				else {
+					attackRandomizer *= 2;
+					attackRandomizer += 1;
+					GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Cyan, FString::SanitizeFloat(attackRandomizer));
+				}
+				//attackRandomizer = 1;
+				debugAttackColor = FColor(FMath::FRandRange(0, 255), FMath::FRandRange(0, 255), FMath::FRandRange(0, 255));
+				//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Cyan, FString::SanitizeFloat(attackRandomizer));
+				attackEven = !attackEven;
+				bIsStoppingBlock = false;
+				bIsAttacking = true;
+			}
+			if (currentWeapon->IsA(ARangedWeapon::StaticClass()))
+			{
+				bIsCharging = true;
+				bIsStoppingBlock = false;
+				bIsAttacking = true;
+			}
 		}
-		else {
-			attackRandomizer *= 2;
-			attackRandomizer += 1;
-			GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Cyan, FString::SanitizeFloat(attackRandomizer));
-		}
-		//attackRandomizer = 1;
-		debugAttackColor = FColor(FMath::FRandRange(0, 255), FMath::FRandRange(0, 255), FMath::FRandRange(0, 255));
-		//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Cyan, FString::SanitizeFloat(attackRandomizer));
-		//attackRandomizer += ((sizeof(attackEndLocation) / sizeof(attackEndLocation[0]) - 1) / 2 * attackEven);
-		attackEven = !attackEven;
-		bIsStoppingBlock = false;
-		bIsAttacking = true;
 	}
 
 
@@ -494,10 +573,54 @@ if (FireAnimation != NULL)
 /**/
 }
 
+void ADaemoniumCharacter::OnFireRelease()
+{
+	if (bIsAttacking && !bIsBlocking && !bIsSprinting && !bIsHolstered)
+	{
+		if (currentWeapon != nullptr)
+		{
+			if (currentWeapon->IsA(ARangedWeapon::StaticClass()))
+			{
+				bIsCharging = false;
+				attackIndex = 1;
+
+				GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, "shot");
+
+				const FRotator SpawnRotation = FirstPersonCameraComponent->GetComponentRotation();//GetControlRotation();
+				// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
+				const FVector SpawnLocation = (FirstPersonCameraComponent->GetForwardVector() * 20 + FirstPersonCameraComponent->GetComponentLocation());// (FP_MuzzleLocation != nullptr) ? FP_MuzzleLocation->GetComponentLocation() : GetActorLocation()) + SpawnRotation.RotateVector(GunOffset);
+
+				const FTransform spawnTransform = FTransform(SpawnRotation, SpawnLocation);
+
+				//Set Spawn Collision Handling Override
+				FActorSpawnParameters ActorSpawnParams;
+				ActorSpawnParams.Owner = this;
+				ActorSpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
+
+				// spawn the projectile at the muzzle
+				//GetWorld()->SpawnActor<ADaemoniumProjectile>(ProjectileClass, SpawnLocation, SpawnRotation, ActorSpawnParams);
+
+				float radius = timeCharged * 300;
+				float damage = timeCharged * 27;
+				timeCharged = 0;
+
+				auto MyDeferredActor = Cast<ADaemoniumProjectile>(UGameplayStatics::BeginDeferredActorSpawnFromClass(this, ProjectileClass, spawnTransform));
+				if (MyDeferredActor != nullptr)
+				{
+					MyDeferredActor->Init(damage, radius, this);
+
+					UGameplayStatics::FinishSpawningActor(MyDeferredActor, spawnTransform);
+				}
+
+			}
+		}
+	}
+}
+
 void ADaemoniumCharacter::UpdateHealthScreenEffect()
 {
 	float val = FMath::Pow(100 - health, 2);
-	FirstPersonCameraComponent->PostProcessSettings.VignetteIntensity = FMath::GetMappedRangeValueClamped(FVector2D(0, 10000), FVector2D(0, 3), val);  
+	FirstPersonCameraComponent->PostProcessSettings.VignetteIntensity = FMath::GetMappedRangeValueClamped(FVector2D(0, 10000), FVector2D(0, 3), val);
 	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, FString::SanitizeFloat(val));
 	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, FString::SanitizeFloat(FirstPersonCameraComponent->PostProcessSettings.VignetteIntensity));
 }
@@ -519,16 +642,127 @@ void ADaemoniumCharacter::OnStopSprint()
 	}
 }
 
+void ADaemoniumCharacter::Holster()
+{
+	if (currentWeapon != nullptr)
+	{
+
+		if (bIsHolstered)
+		{
+			bIsHolstered = false;
+			FP_Weapon->SetStaticMesh(currentWeapon->mesh->GetStaticMesh());
+		}
+		else
+		{
+			bIsHolstered = true;
+			FP_Weapon->SetStaticMesh(nullptr);
+		}
+	}
+}
+
+void ADaemoniumCharacter::Interact()
+{
+	DrawDebugSphere(
+		GetWorld(),
+		FirstPersonCameraComponent->GetForwardVector() + FirstPersonCameraComponent->GetComponentLocation(),
+		50,
+		32,
+		FColor(255, 255, 255),
+		true,
+		1
+	);
+	DrawDebugSphere(
+		GetWorld(),
+		FirstPersonCameraComponent->GetForwardVector() * 150.0f + FirstPersonCameraComponent->GetComponentLocation(),
+		50,
+		32,
+		FColor(255, 0, 255),
+		true,
+		1
+	);
+	FCollisionShape MySphere = FCollisionShape::MakeSphere(50.0f);
+	TArray<FHitResult> OutResults = TArray<FHitResult>();
+	GetWorld()->SweepMultiByChannel(OutResults, FirstPersonCameraComponent->GetForwardVector() + FirstPersonCameraComponent->GetComponentLocation(), FirstPersonCameraComponent->GetForwardVector() * 150.0f + FirstPersonCameraComponent->GetComponentLocation(), FQuat::Identity, ECollisionChannel::ECC_WorldDynamic, MySphere);
+	//for (int32 i = 0; i < OutResults.Num; i++) {
+	//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, FString::SanitizeFloat((float)(OutResults.Num())));
+	for (FHitResult result : OutResults) {
+		//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, "hit");
+		if (result.GetActor() != nullptr)
+		{
+			if (result.GetActor()->IsA(AWeapon::StaticClass())) {
+				PickedUpWeapon(result.GetActor());
+			}
+
+			//if (result.GetActor()->IsA(AMeleeWeapon::StaticClass())) {
+			//	currentWeapon = (AMeleeWeapon*)(result.GetActor());
+			//	//PickedUpWeapon();
+			//	//result.GetActor()->Destroy();
+			//}
+			//else if (result.GetActor()->IsA(ARangedWeapon::StaticClass())) {
+			//	currentWeapon = (ARangedWeapon*)(result.GetActor());
+			//	//PickedUpWeapon();
+			//	//result.GetActor()->Destroy();
+			//}
+		}
+	}
+}
+
+void ADaemoniumCharacter::PickedUpWeapon(AActor* actor)
+{
+	bIsHolstered = false;
+	if (actor->IsA(AMeleeWeapon::StaticClass())) {
+		if (currentWeapon != nullptr)
+		{
+			ReplaceWeapon(actor);
+		}
+		else
+		{
+			actor->SetActorHiddenInGame(true);
+			actor->SetActorEnableCollision(false);
+		}
+		currentWeapon = (AMeleeWeapon*)(actor);// result.GetActor());
+		FP_Weapon->SetStaticMesh(currentWeapon->mesh->GetStaticMesh());
+	}
+	else if (actor->IsA(ARangedWeapon::StaticClass()))
+	{
+		if (currentWeapon != nullptr)
+		{
+			ReplaceWeapon(actor);
+		}
+		else
+		{
+			actor->SetActorHiddenInGame(true);
+			actor->SetActorEnableCollision(false);
+		}
+		currentWeapon = (ARangedWeapon*)(actor);
+		FP_Weapon->SetStaticMesh(currentWeapon->mesh->GetStaticMesh());
+	}
+}
+
+void ADaemoniumCharacter::ReplaceWeapon(AActor* actor)
+{
+	actor->SetActorHiddenInGame(true);
+	actor->SetActorEnableCollision(false);
+
+	currentWeapon->SetActorLocation(actor->GetActorLocation());
+	currentWeapon->SetActorHiddenInGame(false);
+	currentWeapon->SetActorEnableCollision(true);
+	//AWeapon* temp = (AWeapon*)(GetWorld()->SpawnActor(AWeapon::StaticClass(),&(actor->GetTransform()), FActorSpawnParameters())); // , NAME_None, NULL, NULL, NULL, false, false, NULL, NULL));
+	//temp = currentWeapon;
+}
+
 void ADaemoniumCharacter::OnStartBlock()
 {
-	FP_Weapon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	bIsBlocking = true;
-	bIsStoppingBlock = false;
-	moveSpeedModifier = .6;
-	if (bIsAttacking)
-	{
-		bIsAttacking = false;
-		attackIndex = 0;
+	if (!bIsHolstered) {
+		FP_Weapon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		bIsBlocking = true;
+		bIsStoppingBlock = false;
+		moveSpeedModifier = .6;
+		if (bIsAttacking)
+		{
+			bIsAttacking = false;
+			attackIndex = 0;
+		}
 	}
 }
 
@@ -731,7 +965,15 @@ float ADaemoniumCharacter::TakeDamage(float Damage, FDamageEvent const & DamageE
 		const float ActualDamage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 		if (ActualDamage > 0.f)
 		{
-			health -= (ActualDamage * ((bIsBlocking) ? .1 : 1));
+			if (bIsBlocking)
+			{
+				drainStamina(ActualDamage * .6, true);
+				health -= (ActualDamage * .1);
+			}
+			else
+			{
+				health -= ActualDamage;
+			}
 			// If the damage depletes our health set our lifespan to zero - which will destroy the actor  
 			if (health <= 0.f)
 			{

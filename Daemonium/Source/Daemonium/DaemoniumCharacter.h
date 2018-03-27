@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "MeleeWeapon.h"
+#include "RangedWeapon.h"
+#include "Weapon.h"
 #include "CoreMinimal.h"
 #include "DaemoniumEnemyTest.h"
 #include "GameFramework/Character.h"
@@ -91,10 +94,15 @@ protected:
 	
 	/** Fires a projectile. */
 	void OnFire();
+	void OnFireRelease();
 	void UpdateHealthScreenEffect();
 	void OnStartSprint();
 	void OnStopSprint();
 
+	void Holster();
+	void Interact();
+	void PickedUpWeapon(AActor* actor);
+	void ReplaceWeapon(AActor* actor);
 	void OnStartBlock();
 	void OnStopBlock();
 
@@ -155,6 +163,7 @@ protected:
 	bool EnableTouchscreenMovement(UInputComponent* InputComponent);
 
 	bool bIsAttacking;
+	bool bIsCharging;
 	bool bIsBlocking;
 	bool bIsStoppingBlock;
 	bool bIsSprinting;
@@ -169,6 +178,10 @@ protected:
 	float invincibillityTimer;
 	float health;
 	bool bIsDead;
+	bool bIsHolstered;
+
+	AWeapon* currentWeapon;
+
 
 	FColor debugAttackColor;
 
@@ -176,6 +189,9 @@ protected:
 	FRotator attackDestinationRotation;
 	FVector attackEndLocation [4][3];
 	FRotator attackEndRotation[4][3];
+	FVector chargeEndLocation[3];
+	FRotator chargeEndRotation[3];
+	float timeCharged;
 	int attackRandomizer;
 	bool attackEven;
 

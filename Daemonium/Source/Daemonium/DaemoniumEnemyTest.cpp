@@ -69,7 +69,7 @@ void ADaemoniumEnemyTest::SetupPlayerInputComponent(UInputComponent* PlayerInput
 
 float ADaemoniumEnemyTest::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser)
 {
-	if (DamageCauser == Cast<ADaemoniumCharacter>(DamageCauser))
+	if (DamageCauser != Cast<ADaemoniumEnemyTest>(DamageCauser))
 	{
 		if (takenDamage == false) {
 			// Call the base class - this will tell us how much damage to apply  
