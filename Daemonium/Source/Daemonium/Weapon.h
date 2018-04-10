@@ -33,8 +33,4 @@ public:
 	FString description;
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 		class UStaticMeshComponent* mesh;
-	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		class UStaticMeshComponent* health_bar_inner;
-	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		class UStaticMeshComponent* health_bar_outer;
 };

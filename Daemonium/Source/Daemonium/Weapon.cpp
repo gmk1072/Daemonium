@@ -11,15 +11,6 @@ AWeapon::AWeapon()
 	mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("weapon"));
 	mesh->SetRelativeLocation(FVector(0, 0, 0));
 
-
-	health_bar_inner = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("health_bar_inner"));
-	health_bar_inner->SetRelativeLocation(FVector(0, 0, 0));
-	health_bar_inner->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	health_bar_outer = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("health_bar_outer"));
-	health_bar_outer->SetRelativeLocation(FVector(0, 0, 0));
-	health_bar_outer->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
 	mesh->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
 	mesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
 	mesh->SetCollisionEnabled(ECollisionEnabled::QueryOnly);

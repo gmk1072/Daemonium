@@ -59,8 +59,6 @@ ADaemoniumProjectile::ADaemoniumProjectile()
 
 
 	partclSystem = CreateDefaultSubobject<UParticleSystem>(TEXT("FireBallExplosion"));
-	GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, "destroyed");
-
 }
 
 void ADaemoniumProjectile::Init(float dmg, float rad, AActor* owner)
