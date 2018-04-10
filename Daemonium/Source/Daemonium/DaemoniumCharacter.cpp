@@ -3,6 +3,8 @@
 #include "DaemoniumCharacter.h"
 #include "Runtime/Engine/Classes/Engine/EngineTypes.h"
 #include "DaemoniumProjectile.h"
+#include "DaemoniumGameMode.h"
+#include "DaemoniumHUD.h"
 #include "Animation/AnimInstance.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -64,6 +66,29 @@ ADaemoniumCharacter::ADaemoniumCharacter()
 	FP_Weapon->RelativeRotation = FRotator(-15.0f, 8.0f, 169.0f);
 	FP_Weapon->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
 	FP_Weapon->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	Health_bar_outer = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("health_bar_outer"));
+	Health_bar_outer->SetStaticMesh(nullptr);
+	Health_bar_outer->SetMobility(EComponentMobility::Movable);
+	Health_bar_outer->SetOnlyOwnerSee(true);			// only the owning player will see this mesh
+	Health_bar_outer->bCastDynamicShadow = false;
+	Health_bar_outer->CastShadow = false;
+	Health_bar_outer->AttachToComponent(FP_Weapon, FAttachmentTransformRules::KeepRelativeTransform);//FP_WeaponRoot, FAttachmentTransformRules::KeepWorldTransform);
+																									 //Health_bar_outer->RelativeRotation = FP_Weapon->RelativeRotation;
+	Health_bar_outer->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+
+	Health_bar_inner = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("health_bar_inner"));
+	Health_bar_inner->SetStaticMesh(nullptr);
+	Health_bar_inner->SetMobility(EComponentMobility::Movable);
+	Health_bar_inner->SetOnlyOwnerSee(true);			// only the owning player will see this mesh
+	Health_bar_inner->bCastDynamicShadow = false;
+	Health_bar_inner->CastShadow = false;
+	Health_bar_inner->AttachToComponent(FP_Weapon, FAttachmentTransformRules::KeepRelativeTransform);//FP_WeaponRoot, FAttachmentTransformRules::KeepWorldTransform);
+																									 //Health_bar_inner->RelativeRotation = FP_Weapon->RelativeRotation;
+	Health_bar_inner->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+
 
 	//FP_Weapon->SetRelativeLocation(FVector(0.0f, 100.0f, 0.0f));
 	//FP_Weapon->SetupAttachment(Mesh1P, TEXT("GripPoint"));
@@ -157,7 +182,7 @@ ADaemoniumCharacter::ADaemoniumCharacter()
 	moveSpeedModifier = 1.0f;
 
 	stamina = 100.0f;
-	staminaRegen = stamina / 6.0f;
+	staminaRegen = stamina / 3.5f;
 
 	health = 100.0f;
 
@@ -393,9 +418,9 @@ void ADaemoniumCharacter::Tick(float DeltaTime)
 	else {
 		if (stamina < 100) {
 			if (bIsBlocking)
-				stamina += (staminaRegen / 2.0f) * FApp::GetDeltaTime();
+				RegainStamina((staminaRegen / 2.0f) * FApp::GetDeltaTime());
 			else
-				stamina += staminaRegen * FApp::GetDeltaTime();
+				RegainStamina(staminaRegen * FApp::GetDeltaTime());
 			if (stamina > 100) {
 				stamina = 100;
 				if (UGameplayStatics::GetPlayerController(GetWorld(), 0)->IsInputKeyDown(EKeys::LeftShift)) {
@@ -584,7 +609,6 @@ void ADaemoniumCharacter::OnFireRelease()
 				bIsCharging = false;
 				attackIndex = 1;
 
-				GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, "shot");
 
 				const FRotator SpawnRotation = FirstPersonCameraComponent->GetComponentRotation();//GetControlRotation();
 				// MuzzleOffset is in camera space, so transform it to world space before offsetting from the character location to find the final muzzle position
@@ -610,6 +634,7 @@ void ADaemoniumCharacter::OnFireRelease()
 					MyDeferredActor->Init(damage, radius, this);
 
 					UGameplayStatics::FinishSpawningActor(MyDeferredActor, spawnTransform);
+					GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, "shot");
 				}
 
 			}
@@ -623,6 +648,11 @@ void ADaemoniumCharacter::UpdateHealthScreenEffect()
 	FirstPersonCameraComponent->PostProcessSettings.VignetteIntensity = FMath::GetMappedRangeValueClamped(FVector2D(0, 10000), FVector2D(0, 3), val);
 	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, FString::SanitizeFloat(val));
 	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Blue, FString::SanitizeFloat(FirstPersonCameraComponent->PostProcessSettings.VignetteIntensity));
+}
+
+void ADaemoniumCharacter::UpdateHealthBar()
+{
+	Health_bar_outer->SetRelativeScale3D(FVector(1, 1, health / 100));
 }
 
 void ADaemoniumCharacter::OnStartSprint()
@@ -651,11 +681,15 @@ void ADaemoniumCharacter::Holster()
 		{
 			bIsHolstered = false;
 			FP_Weapon->SetStaticMesh(currentWeapon->mesh->GetStaticMesh());
+			Health_bar_inner->SetStaticMesh(currentWeapon->health_bar_inner->GetStaticMesh());
+			Health_bar_outer->SetStaticMesh(currentWeapon->health_bar_outer->GetStaticMesh());
 		}
 		else
 		{
 			bIsHolstered = true;
 			FP_Weapon->SetStaticMesh(nullptr);
+			Health_bar_inner->SetStaticMesh(nullptr);
+			Health_bar_outer->SetStaticMesh(nullptr);
 		}
 	}
 }
@@ -722,6 +756,8 @@ void ADaemoniumCharacter::PickedUpWeapon(AActor* actor)
 		}
 		currentWeapon = (AMeleeWeapon*)(actor);// result.GetActor());
 		FP_Weapon->SetStaticMesh(currentWeapon->mesh->GetStaticMesh());
+		Health_bar_inner->SetStaticMesh(currentWeapon->health_bar_inner->GetStaticMesh());
+		Health_bar_outer->SetStaticMesh(currentWeapon->health_bar_outer->GetStaticMesh());
 	}
 	else if (actor->IsA(ARangedWeapon::StaticClass()))
 	{
@@ -736,6 +772,8 @@ void ADaemoniumCharacter::PickedUpWeapon(AActor* actor)
 		}
 		currentWeapon = (ARangedWeapon*)(actor);
 		FP_Weapon->SetStaticMesh(currentWeapon->mesh->GetStaticMesh());
+		Health_bar_inner->SetStaticMesh(currentWeapon->health_bar_inner->GetStaticMesh());
+		Health_bar_outer->SetStaticMesh(currentWeapon->health_bar_outer->GetStaticMesh());
 	}
 }
 
@@ -747,6 +785,8 @@ void ADaemoniumCharacter::ReplaceWeapon(AActor* actor)
 	currentWeapon->SetActorLocation(actor->GetActorLocation());
 	currentWeapon->SetActorHiddenInGame(false);
 	currentWeapon->SetActorEnableCollision(true);
+	currentWeapon->health_bar_inner->SetRelativeLocation(FVector(0, 0, 0));
+	currentWeapon->health_bar_outer->SetRelativeLocation(FVector(0, 0, 0));
 	//AWeapon* temp = (AWeapon*)(GetWorld()->SpawnActor(AWeapon::StaticClass(),&(actor->GetTransform()), FActorSpawnParameters())); // , NAME_None, NULL, NULL, NULL, false, false, NULL, NULL));
 	//temp = currentWeapon;
 }
@@ -763,6 +803,7 @@ void ADaemoniumCharacter::OnStartBlock()
 			bIsAttacking = false;
 			attackIndex = 0;
 		}
+		ShowStaminaBar(true);
 	}
 }
 
@@ -771,6 +812,23 @@ void ADaemoniumCharacter::OnStopBlock()
 	bIsBlocking = false;
 	bIsStoppingBlock = true;
 	moveSpeedModifier = 1;
+	ShowStaminaBar(false);
+}
+
+void ADaemoniumCharacter::RegainStamina(float staminaGained)
+{
+	stamina += staminaGained;
+	updateStaminaBar();
+
+}
+
+void ADaemoniumCharacter::updateStaminaBar_Implementation()
+{
+}
+
+void ADaemoniumCharacter::ShowStaminaBar_Implementation(bool show)
+{
+
 }
 
 
@@ -806,6 +864,7 @@ bool ADaemoniumCharacter::drainStamina(float staminaCost, bool drainAnyway)
 			staminaRegenCooldown = 0;
 			bStaminaCooldown = true;
 			stamina = 0;
+			updateStaminaBar();
 		}
 		return false;
 	}
@@ -813,6 +872,7 @@ bool ADaemoniumCharacter::drainStamina(float staminaCost, bool drainAnyway)
 		stamina -= staminaCost;
 		staminaRegenCooldown = 0;
 		bStaminaCooldown = true;
+		updateStaminaBar();
 		return true;
 	}
 }
@@ -982,6 +1042,7 @@ float ADaemoniumCharacter::TakeDamage(float Damage, FDamageEvent const & DamageE
 			}
 		}
 		UpdateHealthScreenEffect();
+		UpdateHealthBar();
 		return ActualDamage;
 	}
 	else {
