@@ -179,6 +179,7 @@ ADaemoniumCharacter::ADaemoniumCharacter()
 	// Uncomment the following line to turn motion controllers on by default:
 	//bUsingMotionControllers = true;
 
+	bIsHolstered = true;
 	moveSpeedModifier = 1.0f;
 
 	stamina = 100.0f;
