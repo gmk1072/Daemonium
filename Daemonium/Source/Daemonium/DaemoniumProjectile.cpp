@@ -59,7 +59,7 @@ ADaemoniumProjectile::ADaemoniumProjectile()
 
 
 	partclSystem = CreateDefaultSubobject<UParticleSystem>(TEXT("FireBallExplosion"));
-	GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, "destroyed");
+	//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, "destroyed");
 
 }
 
