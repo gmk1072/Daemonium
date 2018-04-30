@@ -13,7 +13,7 @@ ADaemoniumEnemyTest::ADaemoniumEnemyTest()
 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	health = 1;
+	health = 100;
 	armor = 1.0;
 
 }
@@ -36,7 +36,7 @@ void ADaemoniumEnemyTest::Tick(float DeltaTime)
 		takenDamage = false;
 		invulnTime = 0;
 	}
-	DrawDebugSphere(
+	/*DrawDebugSphere(
 		GetWorld(),
 		RootComponent->GetComponentToWorld().GetLocation(),
 		300,
@@ -48,7 +48,7 @@ void ADaemoniumEnemyTest::Tick(float DeltaTime)
 		RootComponent->GetComponentToWorld().GetLocation(),
 		damageRad,
 		32,
-		FColor(255,0,0)
+		FColor(255, 0, 0)
 	);
 	damageRad += (60 * DeltaTime);
 	if (damageRad >= 300) {
@@ -56,7 +56,7 @@ void ADaemoniumEnemyTest::Tick(float DeltaTime)
 		FDamageEvent DamageEvent(ValidDamageTypeClass);
 		UGameplayStatics::ApplyRadialDamage(GetWorld(), 20, RootComponent->GetComponentToWorld().GetLocation(), damageRad, ValidDamageTypeClass, TArray<AActor*>(), this, GetController(), true, ECC_Destructible);
 		damageRad = 0;
-	}
+	}*/
 }
 
 
