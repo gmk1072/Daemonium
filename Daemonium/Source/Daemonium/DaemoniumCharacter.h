@@ -5,6 +5,7 @@
 #include "MeleeWeapon.h"
 #include "RangedWeapon.h"
 #include "Weapon.h"
+#include "Consumable.h"
 #include "CoreMinimal.h"
 #include "DaemoniumEnemyTest.h"
 #include "GameFramework/Character.h"
@@ -103,6 +104,15 @@ public:
 	void ShowStaminaBar_Implementation(bool show);
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerStats)
 	float stamina;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerStats)
+	bool bIsHolstered;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerStats)
+	AWeapon* currentWeapon;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = PlayerStats)
+	AConsumable* currentConsumable;
+
+	void Heal(float amount);
+
 protected:
 
 	/** Fires a projectile. */
@@ -116,8 +126,11 @@ protected:
 
 	void Holster();
 	void Interact();
+	void Quaff();
 	void PickedUpWeapon(AActor* actor);
+	void PickedUpConsumable(AActor* actor);
 	void ReplaceWeapon(AActor* actor);
+	void ReplaceConsumable(AActor* actor);
 	void OnStartBlock();
 	void OnStopBlock();
 
@@ -194,11 +207,10 @@ protected:
 	float invincibillityTimer;
 	float health;
 	bool bIsDead;
-	bool bIsHolstered;
 
 	AGameModeBase* gameMode;
 
-	AWeapon* currentWeapon;
+	
 
 
 	FColor debugAttackColor;
